@@ -1,0 +1,1 @@
+// Shared Android configuration applied via subproject build scripts.

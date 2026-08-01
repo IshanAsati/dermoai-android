@@ -1,0 +1,67 @@
+# DermoAI — UI/UX Analysis (condensed)
+
+## Design system (core/ui) — neumorphic (Soft UI)
+- Neumorphic recipe: mid-tone base `Canvas #DDE1E6`, raised fill `CardWhite #EAECF0` (darker than base — depth comes from dual shadows, not brightness), inset well `TintSweep #F4F6F8`.
+- Dual shadows on every raised element: `ShadowHi #FFFFFF` (top-left light) + `ShadowLo #B5B9C0` (bottom-right dark); pressed/inset state swaps to inner shadow + `TintSweep` fill at 150ms.
+- `DermoColors`: teal `#0D9488` accent, slate/ink neutrals, coral/sage/amber semantic, dark-mode set. Violet deliberately removed.
+- Dark mode keeps slate surfaces but adds soft depth: `DarkShadowHi #26324B`, `DarkShadowLo #0A101F`, `DarkCard #232F45` raised.
+- `DermoTypography`: full M3 scale, SansSerif, no inline `sp` anywhere — strong discipline. (Future polish: Plus Jakarta Sans, not bundled.)
+- `DermoSpacing` (`Sp.*`): 8dp tokens, documented as mandatory — **zero usage in `feature/`** (verified by grep). Dead contract.
+- `DermoTheme`: light/dark + dynamic color (Android 12+), user overrides in Settings; now also passes `Shapes` (medium = 14dp neumorphic radius).
+- Primitives: `NeuSurface` (raised/inset), `NeuButton`/`NeuIconButton`/`NeuFloatingActionButton`, `NeuShadow` modifiers (`neumorphElevated` / `neumorphInset` / `innerShadow`). Shared components reworked on top: `DermoGlassCard` → raised `NeuSurface`; `GradientHeader` (teal accent bar, carved bottom edge); `MedicalDisclaimerBar` (inset well).
+- Shell: 5-tab bottom bar with center-emphasized teal Scan tab; typed routes; auth guard; bar hidden on camera/detail.
+
+## Neumorphism guardrails
+- Raised = `CardWhite` fill + dual shadows; pressed/inset = `TintSweep` + inner shadow. Camera/crop overlays and the Splash gradient stay dark/unchanged.
+- Contrast is the style's known weakness — the retheme must not reintroduce the contrast bugs below:
+  - Body text `Ink #0F172A` on base ≈ 11:1 ✓; `Slate #475569` ≈ 5.3:1 ✓; `Muted #94A3B8` ≈ 2.3:1 ✗ — never on the base, bump captions to `Slate`.
+  - Small semantic labels (teal `labelSmall`, coral) only on filled backgrounds with dark-enough tone.
+- Semantics preserved in all `Neu*` components (`Role`, `enabled`, `onClick`) so TalkBack behavior is unchanged.
+
+## Strengths
+- Disclaimers everywhere; typography discipline; mostly no hardcoded colors; touch targets mostly ≥48dp; scan crop UX thoughtful; state machines in scan + reports.
+
+## Critical dead-ends (features that do nothing)
+1. Home "Latest scan" card always shows empty — `HomeViewModel` has no scan DAO (HomeDashboardScreen.kt:139-148).
+2. Gallery upload: copies file, swallows all exceptions, never navigates (ScanScreens.kt:257-269).
+3. Scan "Analyzing…" state renders text only — comment promises spinner, none rendered (ScanScreens.kt:754-761).
+4. Camera capture failure and permission denial are silent.
+
+## Missing state handling
+- Home/Timeline/Treatment/Analytics/Settings: no loading/error/empty states; flash-of-empty on first load; no shimmer skeletons (PRD mandates them).
+- Timeline delete swallows errors, still navigates back; Treatment CRUD has no failure path; Home env fetch races and reads stale cache.
+- Timeline detail renders broken UI for a null/deleted scan — Delete/Record still enabled.
+- Report PDF `Ready` never reset on range/toggle change → stale report shown as current.
+
+## Accessibility
+- Contrast: teal ~3.3:1, coral ~3.1:1 on white (fail AA, used at `labelSmall`); pervasive `onSurfaceVariant.copy(alpha = 0.6-0.7f)` on small text.
+- Unlabeled `Switch` rows (reports/settings); report date-range selection conveyed by color only.
+- Breathing circle has no accessible/live-region alternative; SkinMind mood selector FIXED (unselected uses plain `onSurfaceVariant` since retheme; icons now TalkBack-labeled with selected state).
+- `NudgeButton` is 48dp (meets target — earlier "36dp" note was stale); onboarding Back/Next ~40dp; flash toggle says only "Flash" to TalkBack.
+
+## Performance
+- `BreathingScreen.kt:67` — unbounded `while(true)` ~15Hz state emissions, full Canvas recompose per tick; no cap/auto-stop/onDispose. Battery drain.
+- Analytics charts: 9sp inline text (`TextStyle(fontSize = 9.sp)`), generic contentDescriptions, no data.
+
+## Consistency / correctness
+- Two "retake" semantics (results → Scan tab vs system-back → crop); duplicate rotate affordances.
+- `deleteStep` FIXED (deletes only the step, renumbers survivors — no orphaned `StepCompletion` rows); move-up/down no-op at boundaries; "Steps · Completions" literal placeholder remains.
+- Timeline feature now localized (`feature/timeline/res/values/strings.xml`, 21 strings); streak string pluralized in Home + SkinMind.
+- Header inconsistency: scan entry/review + timeline detail roll custom headers instead of `GradientHeader`.
+- Legacy alias noise: `VioletAccent` is literally teal (DermoColors.kt) but used as SkinMind brand accent.
+- Dead code: 8 unreachable `*PlaceholderScreen.kt` + unused imports in `DermoAppRoot`; `ReportScreen.onBack` unused (no back affordance); dead no-op Play button in TimelineDetail. `toggleDynamicColor()` NOW surfaced in Settings ("Dynamic color (Android 12+)" row).
+
+## Priorities — status (updated after last task run)
+1. **Neumorphic retheme** — tokens + `Neu*` primitives + feature sweep. **IMPLEMENTED + compiles (`assembleDebug` green).** Visual verification on emulator: attempted headless (AVD `dermoai_test`, `-gpu swiftshader_indirect` and `-gpu host`) — app installs, launches, and draws frames (HWUI logs completed frames, no crash), but `screencap`/`emu screenrecord` return black/primary-RGB garbage on this machine (gfxstream capture broken headless). **NOW VISUALLY VERIFIED on-device (windowed emulator, `-gpu host`):** splash, onboarding, auth, Home light + dark all render the neumorphic palette correctly — Canvas #DDE1E6 base (~92% onboarding, 31% Home), raised CardWhite cards, TintSweep inset wells, teal accents, dual shadows, dark mode DarkCanvas/DarkCard/DarkShadowHi/Lo all confirmed via pixel analysis of screencaps. Env alert card + 5-tab bottom bar confirmed.
+   - Emulator gotcha on this machine: cold-boot ANR storms are caused by the guest's `android.hardware.sensors-service.multihal` spinning at ~95% CPU (known emulator bug), NOT by the app — kill it with `adb root && kill -9 $(pidof android.hardware.sensors-service.multihal)`. Also `adb root` needed for that.
+2. **Bug hunt** — code-level fixes done (see below). Remaining: on-device visual pass (dual shadows, pressed/inset states, dark mode) when a windowed emulator is available. This machine: JDK 21 at `C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot`, SDK at `C:\Android\Sdk`, run with `set JAVA_HOME=...&& gradlew.bat assembleDebug`.
+3. **DONE** — gallery → review wired (`ScanEntryScreen.onPhotoPicked` → `ScanReviewRoute`); Home "Latest scan" card real (HomeViewModel + `SkinScanDao`, thumbnail/date/click → `TimelineDetailRoute`, loading placeholder); analyzing spinner verified present; capture-failure overlay + camera-permission-denied + gallery-error inline messages added.
+4. **DONE** — `Sp.*` tokens deleted (only 2 real usages in `DermoGlassCard`, inlined to 20.dp; `DermoSpacing.kt` removed).
+5. **DONE** — loading states for Home (placeholder card), Timeline (spinner + "Scan not found" detail state + delete failure surfaced), Treatment (spinner), Analytics (spinner); empty states already existed in Timeline/Treatment/Analytics.
+6. **DONE (partial)** — Timeline + Report disclaimers no longer use 0.6-alpha `onSurfaceVariant`; Analytics 9sp inline label → `labelSmall`. Remaining alpha uses are decorative or dark camera overlays. Teal/coral small-label contrast on light fills still fails AA (design-token issue, not yet resolved).
+7. **DONE** — breathing capped at 5 cycles (~80s) with auto-stop + "Session complete" state; phase label is a `liveRegion` (Polite) with phase + cycle announcement.
+8. **DONE** — Timeline localized (new `res/values/strings.xml`); streak plurals in Home + SkinMind (`home_streak_days`, `skinnmind_streak_days`); Switch rows labeled via `contentDescription` semantics in Settings (3) and Reports (3).
+
+**Resume here — DESIGN DIRECTION (user request, settled):** keep **neumorphism**, fix the colors. Final scheme: **"Pine & Cream" neumorphism** — warm sand base `Canvas #EAE4DA`, warm cream raised fill `CardWhite #F4EFE7`, warm sand inset wells `TintSweep #E2DCD1`, warm white highlight + warm taupe shadow (`#FFFFFF` / `#C9C1B4`), accent pine `Teal #1E6E5C` (alias `TealAccent`/`VioletAccent` → pine, 6.1:1 on white), pale pine `TealLight #D9EDE4`, deep pine text `TealText #123F33`, warm ink `#202B26`, secondary `Slate #55645C` (≥4.9:1), semantic coral/sage/amber + `CoralText/AmberText/SageText` unchanged. **Typography (per ui-ux-pro-max skill):** serif display roles (displayLarge→headlineSmall = `FontFamily.Serif`, editorial wellness personality; future polish: bundle Lora variable font) + SansSerif body/UI. **ICON-CENTERING BUG FIXED:** `Box(contentAlignment = Center)` without `Modifier.fillMaxSize()` places children top-left in a `BoxScope` — fixed all 15 wells (Home 9, Scan 4, Timeline 1, Journal 1) to `Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center)` + bottom-bar Scan chip icon `Modifier.align(Alignment.Center)`; verified on-device (avatar letter center offset 0,1px; hero camera icon center exact). **WHITE-HALO BUG FIXED (NeuShadow.kt):** `neumorphElevated` had INVERTED shadow directions — `translate(+e,+e)` sweeps the stroke along the top/left interior (dark rim there) and `translate(-e,-e)` put the white highlight along the bottom/right interior, so every raised element (cards, buttons, FABs) showed a white bottom-right rim ("weird white thing"). Swapped so light = top/left interior, dark = bottom/right interior; also softened: elevation 8→5dp, stroke e*1.4→e*1.1, alphas 0.55/0.45→0.35/0.30 (full-strength white strokes read as a harsh halo on warm cream); `neumorphInset` depth 2→1.5dp, alphas capped 0.55. Verified on-device: top-edge rim flipped from dark (−34) to light (+28). Skill-validated: neumorphism = best-fit style for health/wellness; design system persisted at `design-system/dermoai/MASTER.md` (+ FINAL DECISIONS overrides). Home = neumorphic template (verified on emulator): GradientHeader w/ avatar monogram (top-right, inset pale-pine circle), pale-pine raised ScanHeroCard w/ inset pine well, raised cards for latest-scan/alert(+time label)/SkinMind(🔥 pill)/insight/treatment, inset-well disclaimer + bottom bar with raised pine Scan chip. `DermoTheme.LightColorScheme` remapped to warm neumorphic tokens; `ShimmerBox` = inset-fill bars on raised cards. **Not yet converted to warm palette** (still old beige-gray neumorphic): Timeline, Treatment, Analytics, SkinMind, Scan, Reports, Settings, auth — they pick up the new accent via `DermoColors` but their `NeuSurface` fills come from the theme, so they're already warm; verify visually. Dark scheme untouched (slate neumorphic). Dynamic color defaults `false`. Env-fetch race FIXED. Shimmer skeletons DONE. Small-label contrast DONE (`textOnLight`). **Lag fix:** emulator ANR/lag storms = `sensors-service.multihal` CPU spin — `tools/run-emulator.sh` kills it after boot (`adb root`); app itself renders smooth (gfxinfo unreliable on this AVD).
+
+Full verbose analysis: desktop `readme.md`. Original project AGENTS.md: `AGENTS.md.bak`.

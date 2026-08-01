@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_app_name">DermoAI</string>
+    <string name="auth_tagline">Your skin health companion</string>
+    <string name="auth_splash_loading">Getting ready…</string>
+
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_slide1_title">Scan with confidence</string>
+    <string name="onboarding_slide1_body">Capture skin photos and get educational insights powered by on-device AI. Never a diagnosis.</string>
+    <string name="onboarding_slide2_title">Track your journey</string>
+    <string name="onboarding_slide2_body">Build a photo timeline, log daily check-ins, and spot patterns over time.</string>
+    <string name="onboarding_slide3_title">Share with your doctor</string>
+    <string name="onboarding_slide3_body">Export clear reports for dermatologist visits. You stay in control of your data.</string>
+
+    <string name="sign_in_title">Welcome back</string>
+    <string name="sign_in_subtitle">Sign in to continue your skin health journey</string>
+    <string name="sign_up_title">Create account</string>
+    <string name="sign_up_subtitle">Join DermoAI — educational insights, not diagnoses</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_display_name">Display name</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_sign_up">Create account</string>
+    <string name="auth_google">Continue with Google</string>
+    <string name="auth_no_account">Don\'t have an account? Sign up</string>
+    <string name="auth_have_account">Already have an account? Sign in</string>
+    <string name="auth_local_mode_banner">Demo mode: Firebase not configured. Email sign-in works locally.</string>
+    <string name="auth_sign_out">Sign out</string>
+    <string name="auth_error_generic">Something went wrong. Please try again.</string>
+    <!-- Replace with Firebase Web client ID when the real google-services.json is added -->
+    <string name="default_web_client_id" translatable="false">placeholder-web-client-id.apps.googleusercontent.com</string>
+</resources>

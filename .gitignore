@@ -1,0 +1,62 @@
+# TFLite model (169 MB — too large for git; conversion script + source are committed)
+app/src/main/assets/ml/skin_model.tflite
+
+# PyTorch checkpoint (339 MB — conversion tooling committed; download separately)
+tools/ml/source/ce_ls_best.pth
+
+# Python env / cache
+tools/ml/__pycache__/
+tools/ml/*.pyc
+tools/ml/tflite_tmp/
+tools/ml/skin_model.onnx
+
+# Python virtual env
+tools/ml/.venv/
+tools/ml/download_model.sh.crdownload.data
+tools/ml/tf_saved_model/
+
+# Embedded repo (partial clone)
+tools/ml/repo/
+
+# Build artifacts
+build/
+.gradle/
+local.properties
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Logs
+*.log
+
+# Firebase
+app/google-services.json
+tools/ml/skin_model.onnx
+
+# Large ML binaries (GitHub 100MB limit) — model must be downloaded separately
+tools/ml/**/*.onnx
+tools/ml/**/*.onnx.data
+tools/ml/**/*.pth
+*.npy
+
+# Local Firebase config (contains project keys)
+google-services.json
+
+# Agent/tooling local state
+.commandcode/
+reasonix.toml

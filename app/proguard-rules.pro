@@ -1,0 +1,2 @@
+-keep class com.dermoai.** { *; }
+-keep class org.tensorflow.lite.** { *; }

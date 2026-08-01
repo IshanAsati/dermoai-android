@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_greeting_morning">সুপ্রভাত, %s</string>
+    <string name="home_greeting_afternoon">শুভ অপরাহ্ন, %s</string>
+    <string name="home_greeting_evening">শুভ সন্ধ্যা, %s</string>
+    <string name="home_greeting_default">স্বাগতম, %s</string>
+    <string name="home_cta_scan">ত্বক স্ক্যান করুন</string>
+    <string name="home_cta_scan_subtitle">শিক্ষামূলক তথ্যের জন্য একটি ছবি তুলুন</string>
+    <string name="home_latest_title">সর্বশেষ স্ক্যান</string>
+    <string name="home_no_scans_title">এখনো কোনো স্ক্যান নেই</string>
+    <string name="home_no_scans_body">আপনার প্রথম ত্বক স্ক্যান করতে ক্যামেরা আইকনে ট্যাপ করুন।</string>
+    <string name="home_treatment_title">চিকিৎসা</string>
+    <string name="home_no_treatment">একটি রুটিন যোগ করুন</string>
+    <string name="home_no_treatment_body">আপনার ত্বকের যত্ন ট্র্যাক করুন এবং আরও জানুন।</string>
+    <string name="home_skinnmind_today">আজকের চেক-ইন</string>
+    <string name="home_skinnmind_pending">চেক-ইন বাকি</string>
+</resources>

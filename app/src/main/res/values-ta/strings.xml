@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DermoAI</string>
+    <string name="medical_disclaimer">This app is an educational and awareness tool and does not replace a dermatologist.</string>
+    <string name="app_tagline">Your AI-powered dermatology companion</string>
+    <string name="phase_one_ready">Architecture foundation ready</string>
+
+    <!-- Bottom navigation labels -->
+    <string name="nav_home">Home</string>
+    <string name="nav_timeline">Timeline</string>
+    <string name="nav_scan">Scan</string>
+    <string name="nav_skinnmind">SkinMind</string>
+    <string name="nav_more">More</string>
+
+    <!-- More hub -->
+    <string name="more_title">More</string>
+    <string name="more_treatment">Treatment</string>
+    <string name="more_wellness">Wellness</string>
+    <string name="more_analytics">Analytics</string>
+    <string name="more_reports">Doctor Report</string>
+    <string name="more_settings">Settings</string>
+</resources>

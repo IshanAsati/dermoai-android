@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_app_name">DermoAI</string>
+    <string name="auth_tagline">আপনার AI চর্মরোগ সহায়ক</string>
+    <string name="auth_splash_loading">লোড হচ্ছে…</string>
+    <string name="onboarding_skip">এড়িয়ে যান</string>
+    <string name="onboarding_next">পরবর্তী</string>
+    <string name="onboarding_get_started">শুরু করুন</string>
+    <string name="onboarding_slide1_title">আত্মবিশ্বাসের সাথে স্ক্যান করুন</string>
+    <string name="onboarding_slide1_body">ত্বকের ছবি তুলুন এবং অন-ডিভাইস AI থেকে শিক্ষামূলক তথ্য পান। কখনও রোগ নির্ণয় নয়।</string>
+    <string name="onboarding_slide2_title">আপনার যাত্রা ট্র্যাক করুন</string>
+    <string name="onboarding_slide2_body">একটি ফটো টাইমলাইন তৈরি করুন, দৈনিক চেক-ইন লগ করুন এবং সময়ের সাথে প্যাটার্ন দেখুন।</string>
+    <string name="onboarding_slide3_title">আপনার ডাক্তারের সাথে শেয়ার করুন</string>
+    <string name="onboarding_slide3_body">চর্মরোগ বিশেষজ্ঞের ভিজিটের জন্য স্পষ্ট রিপোর্ট এক্সপোর্ট করুন। আপনার ডেটা আপনার নিয়ন্ত্রণে।</string>
+    <string name="sign_in_title">স্বাগতম</string>
+    <string name="sign_in_subtitle">আপনার অ্যাকাউন্টে সাইন ইন করুন</string>
+    <string name="sign_up_title">অ্যাকাউন্ট তৈরি করুন</string>
+    <string name="sign_up_subtitle">ডার্মোএআই শুরু করতে সাইন আপ করুন</string>
+    <string name="auth_email">ইমেইল</string>
+    <string name="auth_password">পাসওয়ার্ড</string>
+    <string name="auth_display_name">নাম</string>
+    <string name="auth_sign_in">সাইন ইন</string>
+    <string name="auth_sign_up">সাইন আপ</string>
+    <string name="auth_google">Google দিয়ে চালিয়ে যান</string>
+    <string name="auth_no_account">অ্যাকাউন্ট নেই? সাইন আপ করুন</string>
+    <string name="auth_have_account">ইতিমধ্যে অ্যাকাউন্ট আছে? সাইন ইন করুন</string>
+    <string name="auth_local_mode_banner">স্থানীয় মোড — ডেটা শুধু এই ডিভাইসে সংরক্ষিত</string>
+    <string name="auth_sign_out">সাইন আউট</string>
+    <string name="auth_error_generic">কিছু ভুল হয়েছে। আবার চেষ্টা করুন।</string>
+</resources>

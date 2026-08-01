@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DermoAI</string>
+    <string name="medical_disclaimer">यह ऐप केवल शैक्षिक और जागरूकता बढ़ाने के लिए है, यह त्वचा रोग विशेषज्ञ का विकल्प नहीं है।</string>
+    <string name="app_tagline">आपका AI-आधारित त्वचा स्वास्थ्य सहायक</string>
+    <string name="phase_one_ready">आर्किटेक्चर तैयार</string>
+
+    <string name="nav_home">मुख्य</string>
+    <string name="nav_timeline">समयरेखा</string>
+    <string name="nav_scan">स्कैन</string>
+    <string name="nav_skinnmind">त्वचामन</string>
+    <string name="nav_more">अधिक</string>
+
+    <string name="more_title">अधिक</string>
+    <string name="more_treatment">उपचार</string>
+    <string name="more_wellness">कल्याण</string>
+    <string name="more_analytics">विश्लेषण</string>
+    <string name="more_reports">डॉक्टर रिपोर्ट</string>
+    <string name="more_settings">सेटिंग</string>
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DermoAI</string>
+    <string name="medical_disclaimer">এই অ্যাপটি একটি শিক্ষামূলক ও সচেতনতামূলক সরঞ্জাম এবং এটি চর্মরোগ বিশেষজ্ঞের বিকল্প নয়।</string>
+    <string name="app_tagline">আপনার AI চালিত চর্মরোগ সহায়ক</string>
+    <string name="phase_one_ready">স্থাপত্য ভিত্তি প্রস্তুত</string>
+    <string name="nav_home">হোম</string>
+    <string name="nav_timeline">টাইমলাইন</string>
+    <string name="nav_scan">স্ক্যান</string>
+    <string name="nav_skinnmind">SkinMind</string>
+    <string name="nav_more">আরও</string>
+    <string name="more_title">আরও</string>
+    <string name="more_treatment">চিকিৎসা</string>
+    <string name="more_wellness">সুস্থতা</string>
+    <string name="more_analytics">বিশ্লেষণ</string>
+    <string name="more_reports">ডাক্তার রিপোর্ট</string>
+    <string name="more_settings">সেটিংস</string>
+</resources>

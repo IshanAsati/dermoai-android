@@ -1,0 +1,12 @@
+{
+  "inputWidth": 224,
+  "inputHeight": 224,
+  "inputChannels": 3,
+  "normalizeMean": [0.485, 0.456, 0.406],
+  "normalizeStd": [0.229, 0.224, 0.225],
+  "outputClasses": 12,
+  "supportsHeatmap": false,
+  "melanomaIndex": 5,
+  "melanomaLogitBias": -1.2,
+  "useTestTimeAugmentation": true
+}

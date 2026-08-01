@@ -1,0 +1,12 @@
+Basal Cell Carcinoma (BCC)
+Actinic Keratosis (ACK)
+Nevus / Mole (NEV)
+Seborrheic Keratosis (SEK)
+Squamous Cell Carcinoma (SCC)
+Melanoma (MEL)
+Acne and Rosacea
+Hair Loss (Alopecia)
+Nail Fungus / Disease
+Fungal Infections (Tinea / Ringworm)
+Vascular Tumors
+Healthy / Normal Skin

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_greeting_morning">Good morning, %1$s</string>
+    <string name="home_greeting_afternoon">Good afternoon, %1$s</string>
+    <string name="home_greeting_evening">Good evening, %1$s</string>
+    <string name="home_greeting_default">Hello, %1$s</string>
+    <string name="home_cta_scan">Scan your skin</string>
+    <string name="home_cta_scan_subtitle">Capture and analyze skin conditions</string>
+    <string name="home_latest_title">Latest scan</string>
+    <string name="home_latest_view">View details</string>
+    <string name="home_latest_thumb_desc">Latest scan thumbnail</string>
+    <string name="home_no_scans_title">No scans yet</string>
+    <string name="home_no_scans_body">Start your skin journal with your first scan</string>
+    <string name="home_treatment_title">Treatment</string>
+    <string name="home_no_treatment">Add a routine</string>
+    <string name="home_no_treatment_body">Track your skincare routine and progress</string>
+    <string name="home_skinnmind_today">Today\'s check-in</string>
+    <string name="home_skinnmind_pending">Complete your daily SkinMind</string>
+    <plurals name="home_streak_days">
+        <item quantity="one">%d day streak</item>
+        <item quantity="other">%d day streak</item>
+    </plurals>
+</resources>

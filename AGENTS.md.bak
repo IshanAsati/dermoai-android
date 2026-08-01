@@ -1,0 +1,71 @@
+# DermoAI
+
+Android dermatology companion. Kotlin/Compose, MVVM + Clean Architecture, Hilt, Room, CameraX, TFLite.
+
+## Build & Run
+
+```bash
+export ANDROID_HOME=/home/light/Android/Sdk
+./gradlew :app:assembleDebug
+```
+
+JDK 21 at `/home/light/.jdks/jdk-21.0.11+10` configured in `gradle.properties`. Java 26 breaks AGP — don't upgrade.
+
+Fast emulator launch:
+```bash
+/home/light/projects/DermoAI/tools/run-emulator.sh
+# or: emulator -avd DermoAI_Pixel -gpu host -accel on -no-audio -no-boot-anim -cores 8 -memory 4096
+# Never -gpu swiftshader_indirect — main lag source on this machine.
+```
+
+## ML Pipeline
+
+**Source weights:** `tools/ml/source/ce_ls_best.pth` (339 MB, ConvNeXt-Base, 12 classes). Has 8 extra keys (`projection_head.*`, `binary_head.*`) from multi-task training — ignored by converter.
+
+**Conversion:** Manual weight-transfer from PT state dict to Keras `ConvNeXtBase(weights=None)` → TFLite. ONNX automation paths (onnx2tf, onnx-tf) all broken for this model — group-conv NCHW bug, `group_conv2d_bias` crash, dep exhaustion.
+
+**Converter:** `tools/ml/convert_to_tflite.py` — 346 weights 1:1 mapped by name with correct transposes (Conv NCHW→NHWC, Linear transposed). Architecture quirk: PT places LayerNorm2D after avgpool (classifier.0), TF ConvNeXtBase has it before avgpool — converter skips backbone's final norm and adds `head_layernorm` post-avgpool.
+
+```bash
+cd /home/light/projects/DermoAI
+python3 tools/ml/convert_to_tflite.py   # venv: .venv-ml/
+```
+
+**Known issue:** Keras model output diverges from PT ONNX reference (max_diff ~1.5-1.8 even with correct norm position). Root cause not found — suspect head weight ordering or stem/downsample layer impl difference. TFLite models produced for now despite this mismatch.
+
+**Output:** `app/src/main/assets/ml/skin_model.tflite` (90 MB, DEFAULT quantization; .gitignored)
+
+**Labels:** `labels.txt` — 12 classes: BCC, ACK, NEV, SEK, SCC, MEL (index 5), Acne, Hair Loss, Nail Fungus, Fungal, Vascular, Healthy
+
+## Key Discovery: ConvNeXt PT → TF Block Mapping
+
+PT `backbone.features.{stage}.{block}` maps to TF `convnext_base_stage_{s}_block_{b}`:
+- `block.0` = DW conv (NCHW → NHWC transpose)
+- `block.2` = LayerNorm2d (gamma/beta)
+- `block.3` = Linear (C→4C, transposed)
+- `block.5` = Linear (4C→C, transposed)
+- `layer_scale` = (C,1,1) → squeeze to (C,)
+
+Stem: `features.0.0` = conv (7×7), `features.0.1` = LayerNorm2d
+Downsample `features.{N}` = conv (2×2, stride 2) + LayerNorm2d
+
+## Project Layout
+
+Multi-module: `app/` + `core/{common,domain,data,database,ui,camera,ml,analytics-engine,environment,reports}` + `feature/{auth,home,scan,timeline,skinnmind,treatment,wellness,analytics,reports,settings}`. Layer rules: `feature/` depends only on `core/`, `core/domain` has no Android deps.
+
+## Inference Interface
+
+`SkinInferenceEngine` interface → `TfliteSkinInferenceEngine` via Hilt (`MlModule`). `ImagePreprocessor` handles bilinear resize + ImageNet normalize. Built-in softmax with melanoma bias (`-1.2` from config). TTA via horizontal flip averaging — enabled in config.
+
+## Firebase
+
+Placeholder `app/google-services.json` — project not provisioned. `FIREBASE_CONFIGURED=false`. Auth uses local session fallback. Full sync is deferred.
+
+## Operating Rules
+
+- Feature modules never depend on other feature modules
+- `AppResult<T>` / `UiState<T>` (Idle/Loading/Success/Error) throughout
+- Room writes first, Firebase sync later (offline-first)
+- No iText for PDFs — `android.graphics.pdf.PdfDocument`
+- Disclaimer on every clinical screen: app educates, does not diagnose
+- Compose Material 3, 24-28dp cards, glass via `DermoGlassCard`, gradient via `GradientHeader`
