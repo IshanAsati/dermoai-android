@@ -26,4 +26,5 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     // @Inject on use cases — resolved by Hilt at the app boundary
     implementation("javax.inject:javax.inject:1")
+    testImplementation(libs.junit)
 }

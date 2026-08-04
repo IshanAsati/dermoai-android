@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
 }
 
@@ -75,6 +74,8 @@ dependencies {
     implementation(project(":feature:analytics"))
     implementation(project(":feature:reports"))
     implementation(project(":feature:settings"))
+    implementation(project(":feature:faq"))
+    implementation(project(":feature:finder"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -104,4 +105,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
+}
+
+// Firebase config (google-services.json) is developer-provided and gitignored.
+// Only apply the plugin when the file is present, so local builds work without it.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }

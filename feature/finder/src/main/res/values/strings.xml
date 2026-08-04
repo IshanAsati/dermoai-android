@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="finder_title">Find a dermatologist</string>
+    <string name="finder_subtitle">Free clinics near you from OpenStreetMap — education only, verify before visiting.</string>
+    <string name="finder_searching">Searching nearby…</string>
+    <string name="finder_locating">Finding your location…</string>
+    <string name="finder_permission_title">Location needed</string>
+    <string name="finder_permission_body">Allow location access to find dermatologists near you. Your location never leaves the app except for the clinic search.</string>
+    <string name="finder_permission_button">Allow location</string>
+    <string name="finder_no_location">Could not determine your location. Enable location services and try again.</string>
+    <string name="finder_error">Could not reach the clinic search. Check your connection and retry.</string>
+    <string name="finder_retry">Retry</string>
+    <string name="finder_empty">No clinics found nearby. Try again later or search a wider area.</string>
+    <string name="finder_broad_note">No dermatologists found nearby — showing general clinics.</string>
+    <string name="finder_directions">Directions</string>
+    <string name="finder_call">Call</string>
+    <string name="finder_select_hint">Tap a marker or a clinic below.</string>
+    <string name="finder_km">%1$s km</string>
+    <string name="finder_m">%1$s m</string>
+    <string name="finder_osmcopyright">© OpenStreetMap contributors</string>
+</resources>

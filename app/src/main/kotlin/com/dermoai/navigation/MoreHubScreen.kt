@@ -19,6 +19,8 @@ import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.QuestionMark
 import androidx.compose.material.icons.outlined.SelfImprovement
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Spa
@@ -84,6 +86,16 @@ fun MoreHubScreen(
                 icon = Icons.Outlined.Settings,
                 label = stringResource(R.string.more_settings),
                 onClick = { onNavigate(SettingsRoute) },
+            )
+            MoreHubRow(
+                icon = Icons.Outlined.QuestionMark,
+                label = stringResource(R.string.more_faq),
+                onClick = { onNavigate(FaqRoute) },
+            )
+            MoreHubRow(
+                icon = Icons.Outlined.LocationOn,
+                label = stringResource(R.string.more_find_dermatologist),
+                onClick = { onNavigate(FindDermatologistRoute) },
             )
 
             Spacer(modifier = Modifier.height(16.dp))

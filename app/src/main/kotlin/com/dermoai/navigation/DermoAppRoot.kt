@@ -37,6 +37,8 @@ import com.dermoai.feature.wellness.BreathingScreen
 import com.dermoai.feature.wellness.JournalScreen
 import com.dermoai.feature.wellness.WellnessHubScreen
 import com.dermoai.feature.analytics.AnalyticsScreen
+import com.dermoai.feature.faq.FaqScreen
+import com.dermoai.feature.finder.FinderScreen
 import com.dermoai.feature.reports.ReportScreen
 import com.dermoai.feature.settings.SettingsScreen
 import com.dermoai.feature.wellness.WellnessPlaceholderScreen
@@ -293,6 +295,9 @@ fun DermoAppRoot(
                             launchSingleTop = true
                         }
                     },
+                    onFindDermatologist = {
+                        navController.navigate(FindDermatologistRoute)
+                    },
                 )
             }
 
@@ -333,6 +338,12 @@ fun DermoAppRoot(
                     onBack = { navController.popBackStack() },
                     onSignOut = { sessionViewModel.signOut() },
                 )
+            }
+            composable<FaqRoute> {
+                FaqScreen()
+            }
+            composable<FindDermatologistRoute> {
+                FinderScreen()
             }
 
             // ── Timeline detail ──────────────────────────────────────

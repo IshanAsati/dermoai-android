@@ -1,0 +1,425 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "mel_1",
+      "category": "skin_cancer",
+      "question": "What is melanoma?",
+      "answer": "Melanoma is a skin cancer that starts in melanocytes, the cells that make pigment. It is less common than other skin cancers but can spread to other parts of the body if not caught early. It often looks like a new or changing dark spot on the skin.",
+      "keywords": ["melanoma", "cancer", "pigment", "melanocytes", "dark spot"]
+    },
+    {
+      "id": "mel_2",
+      "category": "skin_cancer",
+      "question": "What is the ABCDE rule for checking moles?",
+      "answer": "The ABCDE rule helps spot warning signs in moles: Asymmetry (one half differs from the other), Border (irregular or notched edges), Color (multiple shades or uneven color), Diameter (larger than 6 mm, about the size of a pencil eraser), and Evolving (changing in size, shape, or color). Any of these signs is a reason to have the spot checked by a clinician.",
+      "keywords": ["abcde", "mole", "check", "asymmetry", "border", "color", "diameter", "evolving"]
+    },
+    {
+      "id": "mel_3",
+      "category": "skin_cancer",
+      "question": "How is melanoma different from a normal mole?",
+      "answer": "Normal moles are usually symmetrical, round, evenly colored, and stable over time. Melanoma often looks irregular, has uneven color or borders, and changes over weeks or months. A new mole appearing after age 30 or a mole that itches, bleeds, or grows deserves a professional look.",
+      "keywords": ["melanoma", "mole", "difference", "normal", "changing"]
+    },
+    {
+      "id": "mel_4",
+      "category": "skin_cancer",
+      "question": "Can melanoma be cured?",
+      "answer": "Yes — melanoma caught early (while it is thin and still confined to the top layers of skin) is highly treatable, usually by surgical removal alone. Survival drops as it grows deeper or spreads, which is why early detection and regular skin checks matter so much.",
+      "keywords": ["melanoma", "cure", "treatment", "early", "survival"]
+    },
+    {
+      "id": "mel_5",
+      "category": "skin_cancer",
+      "question": "Who is at higher risk of melanoma?",
+      "answer": "Risk is higher with fair skin that burns easily, a history of sunburns (especially in childhood), many moles or atypical moles, a family or personal history of melanoma, and older age. People with darker skin can still get melanoma, most often on palms, soles, and under nails.",
+      "keywords": ["melanoma", "risk", "fair skin", "sunburn", "family history", "age"]
+    },
+    {
+      "id": "mel_6",
+      "category": "skin_cancer",
+      "question": "What should I do if a mole changes, itches, or bleeds?",
+      "answer": "Any mole that changes in size, shape, or color, or that bleeds, itches, or crusts without injury, should be examined by a dermatologist promptly. Take a photo and note the date so you can describe the change accurately.",
+      "keywords": ["mole", "change", "bleed", "itch", "dermatologist", "when to see"]
+    },
+    {
+      "id": "mel_7",
+      "category": "skin_cancer",
+      "question": "Do tanning beds cause skin cancer?",
+      "answer": "Yes. Tanning beds emit UV radiation classified as a carcinogen, and using them raises the risk of melanoma and other skin cancers, especially when used before age 30. There is no 'safe' tanning bed use.",
+      "keywords": ["tanning bed", "uv", "melanoma", "risk", "carcinogen"]
+    },
+    {
+      "id": "mel_8",
+      "category": "skin_cancer",
+      "question": "How often should I check my skin?",
+      "answer": "A monthly self-exam of your whole skin — including scalp, between toes, palms, and soles — is a good habit. See a dermatologist for a full-body exam at least once a year if you have risk factors such as fair skin, many moles, or a family history of skin cancer.",
+      "keywords": ["self exam", "skin check", "monthly", "dermatologist", "full body"]
+    },
+    {
+      "id": "mel_9",
+      "category": "skin_cancer",
+      "question": "Can melanoma appear on skin that is never exposed to the sun?",
+      "answer": "Yes. Melanoma can appear anywhere, including on the scalp, under nails, on the palms and soles, and even in the eyes or mouth. Sun exposure is the biggest known risk factor, but genetics and other factors matter too.",
+      "keywords": ["melanoma", "sun", "nails", "palms", "soles", "location"]
+    },
+    {
+      "id": "mel_10",
+      "category": "skin_cancer",
+      "question": "What is a melanoma biopsy?",
+      "answer": "A biopsy is when a clinician removes all or part of a suspicious spot so a pathologist can examine it under a microscope. It is the only way to confirm whether a spot is melanoma, and it is a quick, minor procedure done with local numbing.",
+      "keywords": ["biopsy", "melanoma", "diagnosis", "pathologist", "procedure"]
+    },
+    {
+      "id": "mel_11",
+      "category": "skin_cancer",
+      "question": "What is basal cell carcinoma (BCC)?",
+      "answer": "Basal cell carcinoma is the most common skin cancer. It usually grows slowly on sun-exposed skin and rarely spreads to other organs, but it can destroy local tissue if untreated. It often looks like a pearly or waxy bump, a flat scar-like patch, or a sore that keeps healing and reopening.",
+      "keywords": ["basal cell", "bcc", "skin cancer", "pearly", "sore"]
+    },
+    {
+      "id": "mel_12",
+      "category": "skin_cancer",
+      "question": "What is squamous cell carcinoma (SCC)?",
+      "answer": "Squamous cell carcinoma is the second most common skin cancer. It grows on sun-exposed skin, can look like a scaly red patch, a firm bump, or an open sore, and can spread if left untreated. It is highly treatable when caught early.",
+      "keywords": ["squamous cell", "scc", "skin cancer", "scaly", "red patch"]
+    },
+    {
+      "id": "mel_13",
+      "category": "skin_cancer",
+      "question": "What is actinic keratosis?",
+      "answer": "Actinic keratosis (AK) is a rough, scaly patch caused by years of sun damage. It is considered precancerous — a small fraction can progress to squamous cell carcinoma. Treatment (freezing, creams, light therapy) is simple and usually done in an office visit.",
+      "keywords": ["actinic keratosis", "ak", "precancer", "scaly", "sun damage", "solar keratosis"]
+    },
+    {
+      "id": "mel_14",
+      "category": "skin_cancer",
+      "question": "Can skin cancer appear in darker skin tones?",
+      "answer": "Yes. People with darker skin get skin cancer too, though UV-linked types are less common. Melanoma in darker skin often appears on the palms, soles, and under nails (acral melanoma), and it is often detected later, so checking these areas matters.",
+      "keywords": ["dark skin", "skin cancer", "acral", "palms", "soles", "nails"]
+    },
+    {
+      "id": "mol_1",
+      "category": "moles",
+      "question": "What is a nevus (mole)?",
+      "answer": "A nevus (plural: nevi) is the medical name for a mole — a growth of pigmented skin cells. Most moles are harmless and appear during childhood and young adulthood. The average adult has 10 to 40 moles.",
+      "keywords": ["nevus", "mole", "pigment", "harmless", "growth"]
+    },
+    {
+      "id": "mol_2",
+      "category": "moles",
+      "question": "Is it normal for moles to change?",
+      "answer": "Moles can darken, lighten, or slowly grow during the teens and twenties, which is normal. A mole that changes noticeably after age 30, or changes quickly, is worth having checked — the ABCDE rule is a good guide.",
+      "keywords": ["mole", "change", "normal", "abcde", "age"]
+    },
+    {
+      "id": "mol_3",
+      "category": "moles",
+      "question": "What is an atypical (dysplastic) mole?",
+      "answer": "An atypical mole looks different from a normal mole — larger, with irregular borders and mixed colors. Atypical moles themselves are benign, but having several raises your melanoma risk, so they should be monitored by a dermatologist.",
+      "keywords": ["atypical", "dysplastic", "mole", "irregular", "risk"]
+    },
+    {
+      "id": "mol_4",
+      "category": "moles",
+      "question": "Is a new mole appearing as an adult dangerous?",
+      "answer": "New moles can appear in adulthood and are often harmless, but a new mole after age 30 is more likely to be scrutinized because melanoma can look like one. If a new mole has irregular features or keeps changing, get it checked.",
+      "keywords": ["new mole", "adult", "melanoma", "check"]
+    },
+    {
+      "id": "mol_5",
+      "category": "moles",
+      "question": "Should all moles be removed?",
+      "answer": "No. Most moles are harmless and removal is only needed for medical reasons (suspicious features) or cosmetic reasons. Removing a mole does not 'prevent' melanoma elsewhere on the body — regular skin checks do more.",
+      "keywords": ["mole", "removal", "remove", "prevention", "cosmetic"]
+    },
+    {
+      "id": "acn_1",
+      "category": "acne",
+      "question": "What causes acne?",
+      "answer": "Acne happens when hair follicles get clogged with oil (sebum) and dead skin cells. Hormones, especially during the teens, increase oil production. Bacteria, genetics, and some products can make it worse. Diet has a small effect for some people.",
+      "keywords": ["acne", "cause", "pores", "sebum", "hormones", "clogged"]
+    },
+    {
+      "id": "acn_2",
+      "category": "acne",
+      "question": "What are the different types of acne?",
+      "answer": "Acne ranges from blackheads and whiteheads (non-inflammatory) to red pimples, pustules, and deep painful nodules or cysts (inflammatory). Deep cystic acne is more likely to scar and often needs prescription treatment.",
+      "keywords": ["acne", "blackhead", "whitehead", "pustule", "cyst", "nodule", "types"]
+    },
+    {
+      "id": "acn_3",
+      "category": "acne",
+      "question": "Is acne only a teenage problem?",
+      "answer": "No. Acne is very common in teenagers but also affects adults — especially women in their 20s to 40s, often tied to hormonal cycles. Adult acne can be stubborn and may need different treatments than teenage acne.",
+      "keywords": ["acne", "adult", "teenager", "hormonal", "women"]
+    },
+    {
+      "id": "acn_4",
+      "category": "acne",
+      "question": "Can acne be cured?",
+      "answer": "Acne can usually be controlled very well, though it may come and go for years. Treatment takes 6-12 weeks to show real improvement, so consistency matters more than switching products frequently. A dermatologist can help when over-the-counter options fail.",
+      "keywords": ["acne", "cure", "treatment", "dermatologist", "time"]
+    },
+    {
+      "id": "acn_5",
+      "category": "acne",
+      "question": "How can I prevent acne scars?",
+      "answer": "The best prevention is early, consistent treatment of active breakouts and never picking or squeezing pimples. Sun protection also helps, because UV exposure darkens healing spots. Deep or pitted scars can be improved with dermatologist procedures.",
+      "keywords": ["acne", "scar", "prevent", "picking", "sun"]
+    },
+    {
+      "id": "acn_6",
+      "category": "acne",
+      "question": "Does chocolate or greasy food cause acne?",
+      "answer": "The link is weak for most people. High-glycemic diets and dairy show a small association in some studies, but they rarely 'cause' acne on their own. It is more useful to treat the skin directly than to cut foods entirely.",
+      "keywords": ["acne", "diet", "chocolate", "food", "dairy", "sugar"]
+    },
+    {
+      "id": "acn_7",
+      "category": "acne",
+      "question": "When should I see a dermatologist for acne?",
+      "answer": "See a dermatologist if acne is deep, painful, or scarring; if over-the-counter products have not helped after 8-12 weeks; or if acne is affecting your confidence or mood. Prescription options — topical retinoids, antibiotics, or stronger treatments — are much more effective.",
+      "keywords": ["acne", "dermatologist", "when to see", "treatment", "retinoid"]
+    },
+    {
+      "id": "acn_8",
+      "category": "acne",
+      "question": "Is it okay to pop pimples?",
+      "answer": "No. Popping pushes bacteria and oil deeper, causing more inflammation, and increases the chance of permanent scars or dark spots. Let pimples resolve on their own or use a spot treatment.",
+      "keywords": ["acne", "pop", "pimple", "scar", "spot treatment"]
+    },
+    {
+      "id": "hai_1",
+      "category": "hair_loss",
+      "question": "How much hair loss is normal?",
+      "answer": "It is normal to shed about 50 to 100 hairs per day. Shedding that leaves visible thinning, bald patches, or clumps of hair in the drain is worth investigating.",
+      "keywords": ["hair loss", "shedding", "normal", "thinning", "falling"]
+    },
+    {
+      "id": "hai_2",
+      "category": "hair_loss",
+      "question": "What is male pattern hair loss?",
+      "answer": "Male pattern hair loss (androgenetic alopecia) is the most common cause of thinning in men — a receding hairline and thinning at the crown, driven by genetics and hormones. It can start in the late teens or twenties and is treatable, not curable.",
+      "keywords": ["hair loss", "male pattern", "androgenetic", "receding", "crown"]
+    },
+    {
+      "id": "hai_3",
+      "category": "hair_loss",
+      "question": "What is female pattern hair loss?",
+      "answer": "Female pattern hair loss causes thinning across the top of the scalp while keeping the front hairline. It is very common and can start at any age. Unlike men, women rarely go completely bald from it.",
+      "keywords": ["hair loss", "female pattern", "thinning", "scalp", "women"]
+    },
+    {
+      "id": "hai_4",
+      "category": "hair_loss",
+      "question": "Can stress cause hair to fall out?",
+      "answer": "Yes. Major stress, illness, surgery, or childbirth can trigger telogen effluvium — a temporary shedding phase that starts about 2-3 months after the event and usually resolves on its own within 6 months. If shedding continues beyond that, see a doctor.",
+      "keywords": ["hair loss", "stress", "telogen effluvium", "temporary", "shedding"]
+    },
+    {
+      "id": "hai_5",
+      "category": "hair_loss",
+      "question": "When should I see a doctor about hair loss?",
+      "answer": "See a doctor if hair loss is sudden, patchy (round bald spots), comes with scalp redness or scaling, or happens with fatigue or weight changes — these can signal treatable conditions like alopecia areata, fungal infection, or thyroid problems.",
+      "keywords": ["hair loss", "doctor", "patchy", "alopecia areata", "thyroid"]
+    },
+    {
+      "id": "nai_1",
+      "category": "nail_fungus",
+      "question": "What is nail fungus?",
+      "answer": "Nail fungus (onychomycosis) is an infection of the nail by fungi or yeast. It makes nails thick, yellow, brittle, or crumbly and usually starts at the edge of the nail. Toenails are affected far more often than fingernails.",
+      "keywords": ["nail fungus", "onychomycosis", "toenail", "thick", "yellow", "infection"]
+    },
+    {
+      "id": "nai_2",
+      "category": "nail_fungus",
+      "question": "Is nail fungus contagious?",
+      "answer": "Yes. The fungi spread through direct contact and through warm, moist shared surfaces like locker-room floors, showers, and nail tools. Wearing breathable shoes, drying feet well, and not sharing nail clippers reduce the risk.",
+      "keywords": ["nail fungus", "contagious", "spread", "shower", "prevention"]
+    },
+    {
+      "id": "nai_3",
+      "category": "nail_fungus",
+      "question": "How is nail fungus treated?",
+      "answer": "Treatment is usually a prescription oral antifungal, medicated nail polish, or a combination. It takes months because the new nail must grow out healthy. Over-the-counter creams alone rarely cure nail fungus.",
+      "keywords": ["nail fungus", "treatment", "antifungal", "oral", "lacquer"]
+    },
+    {
+      "id": "nai_4",
+      "category": "nail_fungus",
+      "question": "How can I prevent nail fungus from coming back?",
+      "answer": "Keep nails short and dry, wear moisture-wicking socks, rotate shoes so they dry out, use shower shoes in public pools and gyms, and sanitize nail tools. Fungus is stubborn — prevention is the best cure.",
+      "keywords": ["nail fungus", "prevent", "recurrence", "socks", "shoes", "gym"]
+    },
+    {
+      "id": "fun_1",
+      "category": "fungal",
+      "question": "What is ringworm?",
+      "answer": "Despite the name, ringworm is a fungal infection of the skin, not a worm. It causes a red, itchy, ring-shaped rash with a clearer center. It spreads by skin contact and is easily treated with antifungal creams.",
+      "keywords": ["ringworm", "fungus", "tinea", "rash", "itchy", "ring"]
+    },
+    {
+      "id": "fun_2",
+      "category": "fungal",
+      "question": "What is athlete's foot?",
+      "answer": "Athlete's foot (tinea pedis) is a fungal infection between the toes and on the soles — itchy, scaly, sometimes cracked skin. It thrives in damp environments. Daily antifungal cream plus keeping feet dry usually clears it.",
+      "keywords": ["athlete foot", "tinea pedis", "fungus", "feet", "itchy", "scaly"]
+    },
+    {
+      "id": "fun_3",
+      "category": "fungal",
+      "question": "What is jock itch?",
+      "answer": "Jock itch (tinea cruris) is a fungal rash in the groin area — itchy, red, often with a defined edge. It is common in athletes and in hot, humid conditions. Keep the area dry and apply antifungal cream; see a doctor if it persists.",
+      "keywords": ["jock itch", "tinea cruris", "groin", "fungus", "rash"]
+    },
+    {
+      "id": "fun_4",
+      "category": "fungal",
+      "question": "How long does a fungal skin infection take to heal?",
+      "answer": "With regular antifungal treatment, most fungal skin infections improve within 1-2 weeks, though the rash may take several more weeks to fully clear. Keep applying the treatment for the full course even after symptoms improve, or it can return.",
+      "keywords": ["fungus", "heal", "treatment", "antifungal", "duration"]
+    },
+    {
+      "id": "vas_1",
+      "category": "vascular",
+      "question": "What is a cherry angioma?",
+      "answer": "A cherry angioma is a small, bright-red to purple bump made of tiny blood vessels. They are extremely common, harmless, and tend to multiply with age. They do not need treatment unless they bleed or bother you cosmetically.",
+      "keywords": ["cherry angioma", "red bump", "blood vessels", "harmless", "age"]
+    },
+    {
+      "id": "vas_2",
+      "category": "vascular",
+      "question": "What are spider veins?",
+      "answer": "Spider veins are small, widened blood vessels visible near the skin surface, often on legs or face. They are usually harmless but can be associated with leg discomfort. Treatments like laser or sclerotherapy are available if desired.",
+      "keywords": ["spider veins", "legs", "blood vessels", "laser", "harmless"]
+    },
+    {
+      "id": "vas_3",
+      "category": "vascular",
+      "question": "What is a port-wine stain?",
+      "answer": "A port-wine stain is a flat, pink-to-purple birthmark caused by dilated blood vessels. It does not fade with age. Laser treatment in childhood can lighten it. Rarely, larger ones relate to underlying syndromes — a pediatrician can advise.",
+      "keywords": ["port wine stain", "birthmark", "laser", "vascular", "red"]
+    },
+    {
+      "id": "hea_1",
+      "category": "healthy_skin",
+      "question": "What SPF should I use?",
+      "answer": "Use a broad-spectrum sunscreen with SPF 30 or higher every day, even when cloudy or indoors near windows. Apply enough (about two finger-lengths for face and neck) and reapply every two hours when outdoors or after swimming and sweating.",
+      "keywords": ["spf", "sunscreen", "sun protection", "reapply", "broad spectrum"]
+    },
+    {
+      "id": "hea_2",
+      "category": "healthy_skin",
+      "question": "Does sunscreen prevent skin cancer?",
+      "answer": "Regular sunscreen use reduces the risk of squamous cell carcinoma and melanoma and prevents premature aging. It works best combined with shade, clothing, hats, and avoiding midday sun. No sunscreen blocks 100% of UV.",
+      "keywords": ["sunscreen", "skin cancer", "prevent", "uv", "aging"]
+    },
+    {
+      "id": "hea_3",
+      "category": "healthy_skin",
+      "question": "What are the different skin types?",
+      "answer": "The basic types are normal, dry, oily, combination (oily in the T-zone, dry elsewhere), and sensitive (easily irritated). Your type can shift with seasons, hormones, and products. Choosing products for your type reduces irritation.",
+      "keywords": ["skin type", "dry", "oily", "combination", "sensitive", "normal"]
+    },
+    {
+      "id": "hea_4",
+      "category": "healthy_skin",
+      "question": "How much water do I need for healthy skin?",
+      "answer": "Hydration helps skin look plump, but drinking extra water beyond your normal needs will not erase wrinkles. General guidance is about 1.5-2 liters a day for adults, adjusted for activity and climate. Moisturizer does more for surface dryness than water.",
+      "keywords": ["water", "hydration", "skin", "moisturizer", "dryness"]
+    },
+    {
+      "id": "hea_5",
+      "category": "healthy_skin",
+      "question": "What causes premature skin aging?",
+      "answer": "The biggest cause is UV exposure — it breaks down collagen and elastin over years. Smoking, poor sleep, stress, and repeated facial expressions also contribute. Daily sunscreen is the single most effective anti-aging step.",
+      "keywords": ["aging", "wrinkles", "uv", "collagen", "sunscreen", "smoking"]
+    },
+    {
+      "id": "hea_6",
+      "category": "healthy_skin",
+      "question": "Do I need vitamin D if I always wear sunscreen?",
+      "answer": "Most people get enough vitamin D from everyday incidental exposure, and sunscreen use does not cause deficiency in practice. If you are concerned, a blood test and supplements are safer than unprotected sun exposure.",
+      "keywords": ["vitamin d", "sunscreen", "sunlight", "deficiency", "supplement"]
+    },
+    {
+      "id": "hea_7",
+      "category": "healthy_skin",
+      "question": "Is exfoliating every day good for my skin?",
+      "answer": "No. Over-exfoliating strips the skin barrier and causes redness, irritation, and breakouts. One to three times a week with a gentle product is plenty for most people; sensitive skin should exfoliate less.",
+      "keywords": ["exfoliate", "scrub", "over-exfoliate", "irritation", "routine"]
+    },
+    {
+      "id": "hea_8",
+      "category": "healthy_skin",
+      "question": "What is a good basic skin care routine?",
+      "answer": "A solid base is: gentle cleanser, moisturizer, and sunscreen in the morning; cleanser and moisturizer at night. Add targeted products (like retinoids or vitamin C) one at a time, waiting a few weeks between additions to see how your skin reacts.",
+      "keywords": ["routine", "cleanser", "moisturizer", "sunscreen", "skincare"]
+    },
+    {
+      "id": "hea_9",
+      "category": "healthy_skin",
+      "question": "How often should I see a dermatologist for a check-up?",
+      "answer": "People with no risk factors can get a full-body skin exam every 1-2 years. If you have many moles, a history of sunburns or skin cancer, or a family history, go at least yearly — or sooner if you notice a changing spot.",
+      "keywords": ["dermatologist", "check up", "skin exam", "frequency", "screening"]
+    },
+    {
+      "id": "app_1",
+      "category": "app",
+      "question": "What does DermoAI do?",
+      "answer": "DermoAI is an educational and awareness tool. It uses an on-device model to estimate which skin conditions a photo may be consistent with, shows confidence and concern levels, and helps you track changes over time. It is not a diagnostic device.",
+      "keywords": ["dermoai", "what is", "app", "educational", "estimate"]
+    },
+    {
+      "id": "app_2",
+      "category": "app",
+      "question": "How accurate is the scan?",
+      "answer": "Estimates are probabilistic, not diagnoses. Accuracy depends on photo quality, lighting, and the condition. The app shows confidence for every estimate and flags when results are uncertain. Always treat results as educational, not medical advice.",
+      "keywords": ["accuracy", "confidence", "reliable", "trust", "uncertain"]
+    },
+    {
+      "id": "app_3",
+      "category": "app",
+      "question": "Can DermoAI diagnose skin cancer?",
+      "answer": "No. DermoAI cannot diagnose skin cancer or any condition. Only a clinician using the right tools (dermoscopy, biopsy, pathology) can do that. The app may flag that a spot looks concerning and recommend seeing a professional — that is a prompt, not a diagnosis.",
+      "keywords": ["diagnose", "cancer", "melanoma", "biopsy", "clinician", "not a diagnosis"]
+    },
+    {
+      "id": "app_4",
+      "category": "app",
+      "question": "When should I see a doctor instead of scanning?",
+      "answer": "See a clinician promptly if a spot is changing, bleeding, itching, or painful; if it looks different from your other spots; if you have a personal or family history of skin cancer; or if the app flags an elevated or urgent concern. Emergencies — like a rapidly growing or bleeding lesion — should be seen immediately.",
+      "keywords": ["doctor", "when to see", "urgent", "emergency", "changing spot"]
+    },
+    {
+      "id": "app_5",
+      "category": "app",
+      "question": "Does DermoAI work on all skin tones?",
+      "answer": "The model is trained on a range of skin tones, but performance can vary, and some conditions are harder to recognize on very dark or very fair skin. If your estimate seems wrong or the app is uncertain, rely on an in-person check.",
+      "keywords": ["skin tone", "dark skin", "fair skin", "bias", "diversity"]
+    },
+    {
+      "id": "app_6",
+      "category": "app",
+      "question": "Where is my scan data stored?",
+      "answer": "Your scans and profile stay on your device by default (local database and on-device model). No photo is uploaded for analysis. Always check the current privacy policy for the latest details.",
+      "keywords": ["privacy", "data", "storage", "local", "upload", "security"]
+    },
+    {
+      "id": "app_7",
+      "category": "app",
+      "question": "Can I delete my scans and data?",
+      "answer": "Yes. Scans can be deleted from the Timeline, and signing out or clearing app data removes local records. If you ever need help removing data, contact support with your account details.",
+      "keywords": ["delete", "remove", "data", "timeline", "clear"]
+    },
+    {
+      "id": "app_8",
+      "category": "app",
+      "question": "Why does the app sometimes say the confidence is low?",
+      "answer": "Low confidence means the photo patterns do not strongly match any single condition — common with blurry, poorly lit, or unusual-looking spots. In that case the app may list several possibilities. A retake in better light often improves the estimate.",
+      "keywords": ["confidence", "low", "uncertain", "retake", "lighting", "blurry"]
+    }
+  ]
+}

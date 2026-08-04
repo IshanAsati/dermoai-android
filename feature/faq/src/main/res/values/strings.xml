@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="faq_title">FAQ</string>
+    <string name="faq_subtitle">Common questions about skin conditions, prevention, and how DermoAI works.</string>
+    <string name="faq_search_hint">Search questions or keywords…</string>
+    <string name="faq_all">All</string>
+    <string name="faq_empty_title">No matches</string>
+    <string name="faq_empty_body">Try a different term, like "mole", "sunscreen", or "melanoma".</string>
+    <string name="faq_error">Could not load the FAQ content.</string>
+    <string name="faq_retry">Retry</string>
+    <string name="faq_source_note">Curated educational content for this app — not a substitute for medical advice.</string>
+</resources>

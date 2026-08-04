@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -49,6 +50,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dermoai.core.data.preferences.UserPreferencesDataStore
+import com.dermoai.core.database.dao.UserProfileDetailsDao
+import com.dermoai.core.database.entity.UserProfileDetailsEntity
+import com.dermoai.core.domain.usecase.auth.ObserveAuthStateUseCase
 import com.dermoai.core.ui.components.GradientHeader
 import com.dermoai.core.ui.components.NeuSurface
 import com.dermoai.core.ui.theme.DermoColors
@@ -57,7 +61,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 private data class SettingsPrefs(
@@ -70,6 +76,8 @@ private data class SettingsPrefs(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val prefs: UserPreferencesDataStore,
+    private val userProfileDetailsDao: UserProfileDetailsDao,
+    private val observeAuthState: ObserveAuthStateUseCase,
 ) : ViewModel() {
 
     private val _envAlertsEnabled = MutableStateFlow(true)
@@ -84,6 +92,9 @@ class SettingsViewModel @Inject constructor(
     private val _dynamicColor = MutableStateFlow(true)
     val dynamicColor: StateFlow<Boolean> = _dynamicColor.asStateFlow()
 
+    private val _profile = MutableStateFlow<UserProfileDetailsEntity?>(null)
+    val profile: StateFlow<UserProfileDetailsEntity?> = _profile.asStateFlow()
+
     init {
         viewModelScope.launch {
             combine(prefs.envAlertsEnabled, prefs.languageCode, prefs.darkModeEnabled, prefs.dynamicColorEnabled) { e, l, d, dc ->
@@ -93,6 +104,11 @@ class SettingsViewModel @Inject constructor(
                 _language.value = l
                 _darkMode.value = d
                 _dynamicColor.value = dc
+            }
+        }
+        viewModelScope.launch {
+            withTimeoutOrNull(5_000) { observeAuthState().first { it != null } }?.id?.let { uid ->
+                _profile.value = userProfileDetailsDao.getById(uid)
             }
         }
     }
@@ -105,6 +121,38 @@ class SettingsViewModel @Inject constructor(
     } }
     fun toggleDarkMode() { viewModelScope.launch { val n = _darkMode.value != true; _darkMode.value = n; prefs.setDarkMode(n) } }
     fun toggleDynamicColor() { viewModelScope.launch { val n = !_dynamicColor.value; _dynamicColor.value = n; prefs.setDynamicColor(n) } }
+
+    /** Persists the editable demographics (age, gender, skin type/tone, sun exposure). */
+    fun saveProfile(age: String, gender: String, skinType: String, skinTone: String, sunExposure: String) {
+        viewModelScope.launch {
+            val uid = withTimeoutOrNull(5_000) { observeAuthState().first { it != null } }?.id ?: return@launch
+            val existing = userProfileDetailsDao.getById(uid)
+            val now = System.currentTimeMillis()
+            val updated = UserProfileDetailsEntity(
+                userId = uid,
+                age = age.toIntOrNull()?.coerceIn(1, 120) ?: 0,
+                gender = gender,
+                skinType = skinType,
+                skinTone = skinTone,
+                sunExposure = sunExposure,
+                skinConcerns = existing?.skinConcerns ?: "",
+                allergies = existing?.allergies ?: "",
+                medications = existing?.medications ?: "",
+                waterIntake = existing?.waterIntake ?: "",
+                sleepHours = existing?.sleepHours ?: "",
+                stressLevel = existing?.stressLevel ?: "",
+                diet = existing?.diet ?: "",
+                smoking = existing?.smoking ?: false,
+                alcohol = existing?.alcohol ?: false,
+                exercise = existing?.exercise ?: "",
+                skinCareRoutine = existing?.skinCareRoutine ?: "",
+                language = existing?.language ?: "en",
+                createdAt = existing?.createdAt ?: now,
+            )
+            userProfileDetailsDao.upsert(updated)
+            _profile.value = updated
+        }
+    }
 }
 
 @Composable
@@ -118,8 +166,10 @@ fun SettingsScreen(
     val language by viewModel.language.collectAsState()
     val darkMode by viewModel.darkMode.collectAsState()
     val dynamicColor by viewModel.dynamicColor.collectAsState()
+    val profile by viewModel.profile.collectAsState()
     var signOutDialog by remember { mutableStateOf(false) }
     var langExpanded by remember { mutableStateOf(false) }
+    var profileDialog by remember { mutableStateOf(false) }
 
     if (signOutDialog) {
         AlertDialog(
@@ -131,12 +181,34 @@ fun SettingsScreen(
         )
     }
 
+    if (profileDialog) {
+        SkinProfileDialog(
+            initial = profile,
+            onDismiss = { profileDialog = false },
+            onSave = { age, gender, skinType, skinTone, sunExposure ->
+                viewModel.saveProfile(age, gender, skinType, skinTone, sunExposure)
+                profileDialog = false
+            },
+        )
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         GradientHeader("Settings")
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SettingsRow(Icons.Outlined.Brightness6, "Dark theme") { Switch(checked = darkMode == true, onCheckedChange = { viewModel.toggleDarkMode() }, modifier = Modifier.semantics { contentDescription = "Dark theme" }) }
             SettingsRow(Icons.Outlined.Notifications, "Environmental alerts") { Switch(checked = envAlerts, onCheckedChange = { viewModel.toggleEnvAlerts() }, modifier = Modifier.semantics { contentDescription = "Environmental alerts" }) }
             SettingsRow(Icons.Outlined.Palette, "Dynamic color (Android 12+)") { Switch(checked = dynamicColor, onCheckedChange = { viewModel.toggleDynamicColor() }, modifier = Modifier.semantics { contentDescription = "Dynamic color" }) }
+            SettingsRow(Icons.Outlined.Person, "Skin profile") {
+                Column(horizontalAlignment = Alignment.End) {
+                    val summary = buildString {
+                        profile?.age?.takeIf { it > 0 }?.let { append("Age $it · ") }
+                        profile?.gender?.takeIf { it.isNotBlank() }?.let { append("$it · ") }
+                        profile?.skinType?.takeIf { it.isNotBlank() }?.let { append(it) }
+                    }.ifBlank { "Not set" }
+                    Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { profileDialog = true }) { Text("Edit") }
+                }
+            }
             SettingsRow(Icons.Outlined.Language, "Language") {
                 Box { Text(if (language == "en") "English" else viewModel.languages.find { it.first == language }?.second ?: language, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.width(8.dp))
@@ -166,6 +238,68 @@ fun SettingsScreen(
             Spacer(Modifier.width(16.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             trailing()
+        }
+    }
+}
+
+private val GENDERS = listOf("Male", "Female", "Non-binary", "Prefer not to say")
+private val SKIN_TYPES = listOf("Normal", "Oily", "Dry", "Combination", "Sensitive")
+private val SKIN_TONES = listOf("Very Fair", "Fair", "Medium", "Olive", "Brown", "Dark Brown")
+private val SUN_EXPOSURES = listOf("Indoors mostly", "15-30 min daily", "1-2 hours daily", "Outdoor worker")
+
+/** Edits the demographics the scan rule layer uses to refine estimates. */
+@Composable
+private fun SkinProfileDialog(
+    initial: UserProfileDetailsEntity?,
+    onDismiss: () -> Unit,
+    onSave: (age: String, gender: String, skinType: String, skinTone: String, sunExposure: String) -> Unit,
+) {
+    var age by remember(initial) { mutableStateOf(initial?.age?.takeIf { it > 0 }?.toString() ?: "") }
+    var gender by remember(initial) { mutableStateOf(initial?.gender ?: "") }
+    var skinType by remember(initial) { mutableStateOf(initial?.skinType ?: "") }
+    var skinTone by remember(initial) { mutableStateOf(initial?.skinTone ?: "") }
+    var sunExposure by remember(initial) { mutableStateOf(initial?.sunExposure ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Skin profile") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Used to refine scan estimates — stored only on this device.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = age,
+                    onValueChange = { age = it },
+                    label = { Text("Age") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                ProfileDropdown("Gender", GENDERS, gender) { gender = it }
+                ProfileDropdown("Skin type", SKIN_TYPES, skinType) { skinType = it }
+                ProfileDropdown("Skin tone", SKIN_TONES, skinTone) { skinTone = it }
+                ProfileDropdown("Sun exposure", SUN_EXPOSURES, sunExposure) { sunExposure = it }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(age, gender, skinType, skinTone, sunExposure) }) { Text("Save") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun ProfileDropdown(label: String, options: List<String>, value: String, onChange: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value.ifBlank { "Not set" },
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { TextButton(onClick = { expanded = true }) { Text("Change") } },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(option) }, onClick = { onChange(option); expanded = false })
+            }
         }
     }
 }

@@ -64,6 +64,10 @@ object ReportsRoute
 @Serializable
 object SettingsRoute
 @Serializable
+object FaqRoute
+@Serializable
+object FindDermatologistRoute
+@Serializable
 object BreathingRoute
 @Serializable
 object JournalRoute

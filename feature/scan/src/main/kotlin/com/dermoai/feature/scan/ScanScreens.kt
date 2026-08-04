@@ -41,6 +41,8 @@ import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.FlashAuto
 import androidx.compose.material.icons.outlined.FlashOff
 import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,6 +75,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,11 +85,17 @@ import com.dermoai.core.camera.CameraCaptureManager
 import com.dermoai.core.common.result.AppResult
 import com.dermoai.core.database.dao.ScanPredictionDao
 import com.dermoai.core.database.dao.SkinScanDao
+import com.dermoai.core.database.dao.UserProfileDetailsDao
 import com.dermoai.core.database.entity.ScanPredictionEntity
 import com.dermoai.core.database.entity.SkinScanEntity
+import com.dermoai.core.database.entity.UserProfileDetailsEntity
 import com.dermoai.core.domain.ml.InferenceResult
 import com.dermoai.core.domain.ml.SkinInferenceEngine
 import com.dermoai.core.domain.model.ConditionSeverity
+import com.dermoai.core.domain.rules.RuleAdjustment
+import com.dermoai.core.domain.rules.RuleBasedFilterEngine
+import com.dermoai.core.domain.rules.SkinProfile
+import com.dermoai.core.domain.severity.SeverityMessageEngine
 import com.dermoai.core.ui.components.GradientHeader
 import com.dermoai.core.ui.components.MedicalDisclaimerBar
 import com.dermoai.core.ui.components.NeuButton
@@ -107,6 +116,8 @@ class ScanViewModel @Inject constructor(
     private val inferenceEngine: SkinInferenceEngine,
     private val skinScanDao: SkinScanDao,
     private val predictionDao: ScanPredictionDao,
+    private val userProfileDetailsDao: UserProfileDetailsDao,
+    private val ruleEngine: RuleBasedFilterEngine,
 ) : ViewModel() {
 
     var capturedPhotoPath by mutableStateOf<String?>(null)
@@ -115,6 +126,14 @@ class ScanViewModel @Inject constructor(
         private set
 
     var inferenceResult by mutableStateOf<InferenceResult?>(null)
+        private set
+
+    /** Rules the demographic filter applied to this result (shown in the UI). */
+    var ruleAdjustments by mutableStateOf<List<RuleAdjustment>>(emptyList())
+        private set
+
+    /** True when the result should suggest visiting a dermatologist (drives the consult CTA). */
+    var referralFlagged by mutableStateOf(false)
         private set
 
     private val cameraExecutor = Executors.newSingleThreadExecutor()
@@ -162,8 +181,10 @@ class ScanViewModel @Inject constructor(
         return outFile.absolutePath
     }
 
-    suspend fun runInference(photoPath: String) {
+    suspend fun runInference(photoPath: String, userId: String) {
         inferenceState = InferenceUiState.Loading
+        ruleAdjustments = emptyList()
+        referralFlagged = false
         val bitmap = BitmapFactory.decodeFile(photoPath)
         if (bitmap == null) {
             inferenceState = InferenceUiState.Error("Failed to load image")
@@ -180,7 +201,16 @@ class ScanViewModel @Inject constructor(
         }
         when (val result = inferenceEngine.predict(bitmap)) {
             is AppResult.Success -> {
-                inferenceResult = result.data
+                val profile = userProfileDetailsDao.getById(userId)?.toSkinProfile()
+                if (profile != null && profile.isPopulated) {
+                    val filtered = ruleEngine.apply(result.data, profile)
+                    inferenceResult = filtered.result
+                    ruleAdjustments = filtered.adjustments
+                    referralFlagged = filtered.referralFlagged
+                } else {
+                    inferenceResult = result.data
+                    referralFlagged = result.data.topPrediction.severity >= ConditionSeverity.HIGH
+                }
                 inferenceState = InferenceUiState.Ready
             }
             is AppResult.Error -> {
@@ -787,6 +817,7 @@ fun ScanResultsScreen(
     viewModel: ScanViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onSavedToTimeline: () -> Unit,
+    onFindDermatologist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val result = viewModel.inferenceResult
@@ -795,7 +826,7 @@ fun ScanResultsScreen(
 
     LaunchedEffect(photoPath) {
         if (state is InferenceUiState.Idle) {
-            viewModel.runInference(photoPath)
+            viewModel.runInference(photoPath, userId)
         }
     }
 
@@ -838,7 +869,7 @@ fun ScanResultsScreen(
                         )
                         Spacer(Modifier.height(24.dp))
                         NeuButton(
-                            onClick = { scope.launch { viewModel.runInference(photoPath) } },
+                            onClick = { scope.launch { viewModel.runInference(photoPath, userId) } },
                             containerColor = DermoColors.TealAccent,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                         ) { Text("Retry") }
@@ -846,7 +877,13 @@ fun ScanResultsScreen(
                 }
                 else -> {
                     if (result != null) {
-                        ResultsContent(photoPath, result)
+                        ResultsContent(
+                            photoPath = photoPath,
+                            result = result,
+                            adjustments = viewModel.ruleAdjustments,
+                            showDoctorCta = viewModel.referralFlagged,
+                            onFindDermatologist = onFindDermatologist,
+                        )
                     } else {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("Preparing analysis…", style = MaterialTheme.typography.bodyLarge)
@@ -870,7 +907,13 @@ fun ScanResultsScreen(
 }
 
 @Composable
-private fun ResultsContent(photoPath: String, result: InferenceResult) {
+private fun ResultsContent(
+    photoPath: String,
+    result: InferenceResult,
+    adjustments: List<RuleAdjustment>,
+    showDoctorCta: Boolean,
+    onFindDermatologist: () -> Unit,
+) {
     val bmp = remember(photoPath) { BitmapFactory.decodeFile(photoPath) }
     val scrollState = rememberScrollState()
 
@@ -892,6 +935,48 @@ private fun ResultsContent(photoPath: String, result: InferenceResult) {
         // Concern band
         Spacer(Modifier.height(16.dp))
         ConcernBandChip(result.topPrediction.severity)
+
+        // Severity-aware, probability-aware summary line
+        Spacer(Modifier.height(16.dp))
+        SeveritySummaryLine(result)
+
+        // Consult CTA — shown when the result (or the rule layer) says to see a doctor
+        if (showDoctorCta) {
+            Spacer(Modifier.height(12.dp))
+            NeuButton(
+                onClick = onFindDermatologist,
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = DermoColors.TealAccent,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ) {
+                Icon(Icons.Outlined.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.severity_consult_cta))
+            }
+        }
+
+        // Rule-based filter notes (age / skin / gender / sun exposure)
+        if (adjustments.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                adjustments.forEach { adj ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = DermoColors.TealAccent,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            adj.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
 
         Spacer(Modifier.height(24.dp))
 
@@ -969,3 +1054,61 @@ private fun ConcernBandChip(severity: ConditionSeverity) {
         }
     }
 }
+
+/**
+ * The severity-aware, probability-aware summary line ("say a line depending on
+ * how serious the condition is and the probabilities"). Built from the engine
+ * payload so tier selection stays unit-testable; phrasing is localized.
+ */
+@Composable
+private fun SeveritySummaryLine(result: InferenceResult) {
+    val engine = remember { SeverityMessageEngine() }
+    val message = remember(result) { engine.build(result) }
+
+    val summary = stringResource(
+        when (message.tier) {
+            ConditionSeverity.LOW -> R.string.severity_summary_low
+            ConditionSeverity.MEDIUM -> R.string.severity_summary_medium
+            ConditionSeverity.HIGH -> R.string.severity_summary_high
+            ConditionSeverity.CRITICAL -> R.string.severity_summary_critical
+        },
+        message.conditionLabel,
+        message.confidencePercent,
+    )
+
+    NeuSurface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = when (message.tier) {
+            ConditionSeverity.CRITICAL -> DermoColors.SoftCoral.copy(alpha = 0.08f)
+            ConditionSeverity.HIGH -> DermoColors.WarmAmber.copy(alpha = 0.08f)
+            else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+    ) {
+        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+            message.runnerUpLabel?.let { runnerUp ->
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.severity_runner_up, runnerUp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+/** Maps the persisted profile row to the rule engine's domain input. */
+private fun UserProfileDetailsEntity.toSkinProfile() = SkinProfile(
+    age = age,
+    gender = gender,
+    skinType = skinType,
+    skinTone = skinTone,
+    sunExposure = sunExposure,
+)

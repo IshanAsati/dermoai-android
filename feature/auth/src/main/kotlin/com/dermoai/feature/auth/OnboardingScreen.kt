@@ -112,7 +112,32 @@ fun OnboardingScreen(
                 OutlinedNeuButton(onClick = { page-- }, modifier = Modifier.weight(1f)) { Text("Back") }
             }
             NeuButton(
-                onClick = { scope.launch { if (page < 3) page++ else viewModel.complete() } },
+                onClick = {
+                    scope.launch {
+                        if (page < 3) page++ else viewModel.complete(
+                            OnboardingProfile(
+                                displayName = displayName,
+                                age = age,
+                                gender = gender,
+                                skinType = skinType,
+                                skinTone = skinTone,
+                                skinConcerns = skinConcerns,
+                                allergies = allergies,
+                                medications = medications,
+                                sunExposure = sunExposure,
+                                waterIntake = waterIntake,
+                                sleepHours = sleepHours,
+                                stressLevel = stressLevel,
+                                diet = diet,
+                                smoking = smoking,
+                                alcohol = alcohol,
+                                exercise = exercise,
+                                skinCareRoutine = skinCareRoutine,
+                                language = language,
+                            )
+                        )
+                    }
+                },
                 modifier = Modifier.weight(1f),
                 containerColor = DermoColors.Teal,
                 contentColor = MaterialTheme.colorScheme.onPrimary,

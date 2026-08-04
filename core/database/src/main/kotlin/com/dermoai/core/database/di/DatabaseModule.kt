@@ -29,6 +29,9 @@ object DatabaseModule {
     fun provideUserProfileDao(database: DermoDatabase) = database.userProfileDao()
 
     @Provides
+    fun provideUserProfileDetailsDao(database: DermoDatabase) = database.userProfileDetailsDao()
+
+    @Provides
     fun provideSkinScanDao(database: DermoDatabase) = database.skinScanDao()
 
     @Provides

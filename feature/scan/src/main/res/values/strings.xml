@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Severity-aware result message templates (Phase: severity messaging).
+         %1$s = condition label, %2$d = rounded confidence percent. -->
+    <string name="severity_summary_low">This is most consistent with %1$s (about %2$d%% confidence). Low concern — this is common and rarely urgent. Keep an eye on any changes.</string>
+    <string name="severity_summary_medium">This looks most consistent with %1$s (about %2$d%% confidence). It is a common condition — monitor it and follow the care guidance below.</string>
+    <string name="severity_summary_high">This is most consistent with %1$s (about %2$d%% confidence). This is an elevated concern — we recommend consulting a dermatologist.</string>
+    <string name="severity_summary_critical">This is most consistent with %1$s (about %2$d%% confidence) and is flagged as urgent. Please consult a clinician promptly.</string>
+    <string name="severity_runner_up">Also showing signs consistent with %1$s.</string>
+    <string name="severity_consult_cta">Find a dermatologist near you</string>
+</resources>
