@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DermoAI — Look closer at your skin</title>
+<meta name="description" content="DermoAI is a skin-health awareness app: photograph a spot, get an educational assessment, and track how it changes over time.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Ccircle cx='54' cy='54' r='22' fill='none' stroke='%23F4EFE7' stroke-width='4.5'/%3E%3Ccircle cx='54' cy='54' r='6.5' fill='%23F4EFE7'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── tokens ─────────────────────────────────────────────── */
+  :root {
+    --canvas:    #EAE4DA;
+    --card:      #F4EFE7;
+    --well:      #E2DCD1;
+    --pine:      #1E6E5C;
+    --pine-deep: #123F33;
+    --pine-pale: #D9EDE4;
+    --ink:       #202B26;
+    --slate:     #55645C;
+    --coral:     #B33A24;
+    --hi:        #FFFFFF;
+    --lo:        #C9C1B4;
+    --shadow-hi: 4px 4px 10px -2px rgba(255,255,255,.9);
+    --shadow-lo: 6px 6px 14px -4px rgba(145,134,112,.55);
+    --shadow-in: inset 2px 2px 6px rgba(145,134,112,.45), inset -2px -2px 6px rgba(255,255,255,.7);
+    --radius: 20px;
+    --serif: "Lora", Georgia, serif;
+    --sans:  "Inter", system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--pine); color: var(--card); }
+  a { color: var(--pine); }
+  :focus-visible { outline: 3px solid var(--pine); outline-offset: 3px; border-radius: 4px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── type scale ─────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--slate);
+  }
+  h1, h2, h3, .display { font-family: var(--serif); font-weight: 600; line-height: 1.12; }
+  h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); letter-spacing: -.015em; }
+  h2 { font-size: clamp(1.9rem, 4vw, 2.9rem); }
+  h3 { font-size: 1.25rem; }
+  .lede { font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--slate); max-width: 34em; }
+
+  /* ── nav ────────────────────────────────────────────────── */
+  header { position: sticky; top: 0; z-index: 20; background: rgba(234,228,218,.85); backdrop-filter: blur(10px); }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--ink); text-decoration: none; }
+  .brand svg { width: 30px; height: 30px; }
+  nav ul { display: flex; gap: 28px; list-style: none; }
+  nav a { text-decoration: none; color: var(--slate); font-size: 14.5px; font-weight: 500; }
+  nav a:hover { color: var(--pine); }
+
+  /* ── buttons ─────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--sans); font-size: 15.5px; font-weight: 600; text-decoration: none;
+    padding: 15px 26px; border-radius: 14px; border: none; cursor: pointer;
+    background: var(--card); color: var(--ink);
+    box-shadow: var(--shadow-hi), var(--shadow-lo);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { box-shadow: var(--shadow-in); transform: translateY(0); }
+  .btn-pine { background: var(--pine); color: #fff; }
+  .btn-pine:hover { background: var(--pine-deep); }
+  .btn svg { width: 20px; height: 20px; }
+
+  /* ── hero ────────────────────────────────────────────────── */
+  .hero { padding: clamp(56px, 9vw, 120px) 0 64px; }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+  .hero .eyebrow { margin-bottom: 18px; }
+  .hero h1 { margin: 0 0 20px; }
+  .hero .lede { margin-bottom: 34px; }
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero-note { margin-top: 18px; font-size: 13.5px; color: var(--slate); }
+
+  /* ── dermoscope (the signature) ──────────────────────────── */
+  .scope-wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .scope {
+    position: relative; width: min(420px, 82vw); aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 38%, #f7f2e8 0%, #efe9dd 42%, #e5dfd2 100%);
+    box-shadow: var(--shadow-hi), var(--shadow-lo), inset 0 0 0 2px rgba(255,255,255,.5);
+    touch-action: manipulation;
+  }
+  /* scan sweep */
+  .sweep { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
+  .sweep::before {
+    content: ""; position: absolute; inset: -30%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(30,110,92,.14) 40deg, transparent 80deg);
+    animation: revolve 7s linear infinite;
+  }
+  @keyframes revolve { to { transform: rotate(360deg); } }
+  /* ring + ticks */
+  .ring { position: absolute; inset: 11%; border: 3px solid var(--pine); border-radius: 50%; opacity: .9; }
+  .ring::after { content: ""; position: absolute; inset: 11%; border: 1.5px solid rgba(30,110,92,.5); border-radius: 50%; }
+  .cross { position: absolute; left: 50%; top: 50%; width: 34%; height: 34%; transform: translate(-50%, -50%); opacity: .5; }
+  .cross::before, .cross::after { content: ""; position: absolute; background: var(--pine); }
+  .cross::before { left: 50%; top: 0; width: 1.5px; height: 100%; }
+  .cross::after  { top: 50%; left: 0; height: 1.5px; width: 100%; }
+  .center-dot { position: absolute; left: 50%; top: 50%; width: 11%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: var(--pine); box-shadow: 0 0 0 7px var(--pine-pale), var(--shadow-lo); }
+  /* abcde letters around the ring */
+  .abc { position: absolute; inset: 0; }
+  .abc button {
+    position: absolute; width: 46px; height: 46px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--pine); background: var(--card);
+    font-family: var(--serif); font-weight: 600; font-size: 17px; color: var(--pine);
+    cursor: pointer;
+    box-shadow: var(--shadow-hi), var(--shadow-lo);
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+  }
+  .abc button:hover, .abc button:focus-visible, .abc button[aria-pressed="true"] {
+    background: var(--pine); color: var(--card);
+  }
+  .abc button[aria-pressed="true"] { transform: translate(-50%, -50%) scale(1.12); }
+  .abc-l { top: 3.5%; left: 50%; }
+  .abc-b { top: 50%; right: 2%; }
+  .abc-c { bottom: 10%; right: 20%; }
+  .abc-d { bottom: 10%; left: 20%; }
+  .abc-e { top: 50%; left: 2%; }
+  .readout {
+    width: 100%; max-width: 380px; background: var(--card); border-radius: 14px;
+    padding: 14px 18px; text-align: center;
+    box-shadow: var(--shadow-in);
+    font-size: 14.5px; min-height: 66px; display: flex; align-items: center; justify-content: center;
+  }
+  .readout strong { font-family: var(--serif); font-size: 17px; display: block; color: var(--pine-deep); }
+  .readout span { color: var(--slate); }
+
+  /* ── sections ────────────────────────────────────────────── */
+  section { padding: clamp(56px, 8vw, 100px) 0; }
+  .section-head { max-width: 640px; margin-bottom: 44px; }
+  .section-head .eyebrow { margin-bottom: 12px; }
+  .section-head h2 { margin-bottom: 12px; }
+
+  /* process — a real sequence, so numbered */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .step {
+    background: var(--card); border-radius: var(--radius); padding: 28px;
+    box-shadow: var(--shadow-hi), var(--shadow-lo);
+  }
+  .step .num { font-family: var(--serif); font-style: italic; color: var(--pine); font-size: 15px; letter-spacing: .08em; }
+  .step h3 { margin: 12px 0 8px; }
+  .step p { color: var(--slate); font-size: 15px; }
+
+  /* abcde cards */
+  .abc-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+  .abc-card { background: var(--card); border-radius: 16px; padding: 22px 18px; box-shadow: var(--shadow-hi), var(--shadow-lo); }
+  .abc-card .letter { font-family: var(--serif); font-size: 26px; font-weight: 600; color: var(--pine); display: block; margin-bottom: 8px; }
+  .abc-card h3 { font-size: 15px; margin-bottom: 6px; }
+  .abc-card p { font-size: 13.5px; color: var(--slate); }
+  .abc-card.urgent { background: var(--well); box-shadow: var(--shadow-in); }
+
+  /* privacy band */
+  .privacy { background: var(--pine); color: var(--pine-pale); border-radius: 24px; padding: clamp(32px, 5vw, 56px); box-shadow: var(--shadow-lo); }
+  .privacy h2 { color: #fff; margin-bottom: 14px; }
+  .privacy p { color: var(--pine-pale); max-width: 40em; }
+  .privacy ul { list-style: none; margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 28px; }
+  .privacy li { display: flex; gap: 10px; font-size: 15px; }
+  .privacy li::before { content: "✓"; color: #fff; font-weight: 600; }
+
+  /* features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .feat { background: var(--card); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-hi), var(--shadow-lo); }
+  .feat h3 { margin-bottom: 8px; }
+  .feat p { color: var(--slate); font-size: 14.5px; }
+
+  /* final cta */
+  .final { text-align: center; }
+  .final h2 { margin-bottom: 14px; }
+  .final .lede { margin: 0 auto 30px; }
+
+  /* footer */
+  footer { border-top: 1px solid rgba(85,100,92,.25); padding: 40px 0 56px; margin-top: 24px; }
+  .foot { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; color: var(--slate); font-size: 14px; }
+  .disclaimer { margin-top: 22px; font-size: 13px; color: var(--slate); max-width: 60em; line-height: 1.5; }
+
+  /* ── responsive ──────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .scope { margin-top: 40px; }
+    .steps, .features { grid-template-columns: 1fr 1fr; }
+    .abc-cards { grid-template-columns: repeat(3, 1fr); }
+    nav ul { display: none; }
+  }
+  @media (max-width: 560px) {
+    .steps, .features { grid-template-columns: 1fr; }
+    .abc-cards { grid-template-columns: 1fr 1fr; }
+    .privacy ul { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .sweep::before { animation: none; }
+    .btn, .abc button { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a class="brand" href="#top" aria-label="DermoAI home">
+      <svg viewBox="0 0 108 108" aria-hidden="true">
+        <circle cx="54" cy="54" r="22" fill="none" stroke="#1E6E5C" stroke-width="7"/>
+        <circle cx="54" cy="54" r="6.5" fill="#1E6E5C"/>
+      </svg>
+      DermoAI
+    </a>
+    <ul>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#abcde">ABCDE</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="#features">Features</a></li>
+    </ul>
+    <a class="btn btn-pine" href="https://play.google.com/store" style="padding:10px 18px">Get the app</a>
+  </nav>
+</header>
+
+<main id="top">
+  <!-- hero -->
+  <section class="hero wrap">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">DermoAI · Skin-health awareness app</p>
+        <h1>Look closer at your skin.</h1>
+        <p class="lede">Photograph a spot and DermoAI explains what it might be in plain language — then tracks how it changes, so you know when a dermatologist should take a look.</p>
+        <div class="cta-row">
+          <a class="btn btn-pine" href="https://play.google.com/store">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 1.8 13.7 12 3.6 22.2a1.6 1.6 0 0 1-.6-1.2V3a1.6 1.6 0 0 1 .6-1.2zm11.5 8.5 2.8-2.8 3.5 2a2 2 0 0 1 0 3.5l-3.5 2-2.8-2.8-1.9-1.9 1.9-2zM3.6 22.2c.2.1.4.2.7 0l9.4-5.4-2.6-2.6-7.5 8zM3.6 1.8 10.9 9.6l2.6-2.6L4.1 1.8a.7.7 0 0 0-.5.2zm12.1 10.3 1.9-1.9-1.9-1.9-2.1 1.9 2.1 1.9z"/></svg>
+            Get DermoAI
+          </a>
+          <a class="btn" href="#how">See how it works</a>
+        </div>
+        <p class="hero-note">Educational tool — it is not a medical device and doesn't replace a dermatologist.</p>
+      </div>
+
+      <!-- the dermoscope -->
+      <div class="scope-wrap" aria-label="Interactive ABCDE dermoscope">
+        <div class="scope" role="group" aria-label="The ABCDE skin check">
+          <div class="sweep" aria-hidden="true"></div>
+          <div class="ring" aria-hidden="true"></div>
+          <div class="cross" aria-hidden="true"></div>
+          <div class="center-dot" aria-hidden="true"></div>
+          <div class="abc">
+            <button class="abc-l" data-letter="A" data-meaning="Asymmetry — one half doesn't match the other." aria-pressed="false">A</button>
+            <button class="abc-b" data-letter="B" data-meaning="Border — edges are irregular or notched." aria-pressed="false">B</button>
+            <button class="abc-c" data-letter="C" data-meaning="Colour — more than one shade, or uneven." aria-pressed="false">C</button>
+            <button class="abc-d" data-letter="D" data-meaning="Diameter — larger than a pencil eraser (~6 mm)." aria-pressed="false">D</button>
+            <button class="abc-e" data-letter="E" data-meaning="Evolving — changing in size, shape or colour." aria-pressed="false">E</button>
+          </div>
+          <div class="readout" id="readout" aria-live="polite">
+            <span>Hover or tap a letter — the five signs dermatologists teach.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- how it works -->
+  <section id="how" class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">How it works</p>
+      <h2>Three steps, one honest loop.</h2>
+      <p class="lede">DermoAI never diagnoses. It helps you see clearly and track change — the two things that matter most.</p>
+    </div>
+    <div class="steps">
+      <article class="step">
+        <span class="num">01 — Capture</span>
+        <h3>Photograph a spot</h3>
+        <p>The app frames your skin in good light and lets you crop precisely. Your photo stays on your phone.</p>
+      </article>
+      <article class="step">
+        <span class="num">02 — Analyze</span>
+        <h3>Read it in plain language</h3>
+        <p>An on-device model estimates severity and confidence, and explains what each sign may mean — no uploads, no account needed to look.</p>
+      </article>
+      <article class="step">
+        <span class="num">03 — Track</span>
+        <h3>Watch what changes</h3>
+        <p>A timeline, daily check-ins and a doctor-ready PDF report show you whether anything is evolving over time.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- abcde -->
+  <section id="abcde" class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">The ABCDE rule</p>
+      <h2>The five signs dermatologists teach.</h2>
+      <p class="lede">DermoAI puts them in your pocket. One of these on a mole or spot — or a spot that simply worries you — is reason to book a consultation.</p>
+    </div>
+    <div class="abc-cards">
+      <div class="abc-card"><span class="letter">A</span><h3>Asymmetry</h3><p>One half doesn't match the other.</p></div>
+      <div class="abc-card"><span class="letter">B</span><h3>Border</h3><p>Irregular, ragged or notched edges.</p></div>
+      <div class="abc-card"><span class="letter">C</span><h3>Colour</h3><p>More than one shade, or uneven colour.</p></div>
+      <div class="abc-card"><span class="letter">D</span><h3>Diameter</h3><p>Bigger than a pencil eraser (~6 mm).</p></div>
+      <div class="abc-card urgent"><span class="letter">E</span><h3>Evolving</h3><p>Changing in size, shape or colour — the one to act on.</p></div>
+    </div>
+  </section>
+
+  <!-- privacy -->
+  <section id="privacy" class="wrap">
+    <div class="privacy">
+      <p class="eyebrow" style="color:#c3ead9">Privacy</p>
+      <h2>Your skin stays on your phone.</h2>
+      <p>Scan photos, your skin profile and your journal are stored on-device only. Nothing is uploaded to DermoAI servers, and even the AI assistant runs on your own API key.</p>
+      <ul>
+        <li>Scans are stored locally, never on our servers</li>
+        <li>No account required to look at a spot</li>
+        <li>Your location only leaves the app when you search for a clinic</li>
+        <li>You can delete any scan — and its photo — at any time</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- features -->
+  <section id="features" class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Inside the app</p>
+      <h2>More than a scan.</h2>
+    </div>
+    <div class="features">
+      <div class="feat"><h3>Timeline</h3><p>Every scan, dated and compared, so change is visible at a glance.</p></div>
+      <div class="feat"><h3>SkinMind</h3><p>Thirty-second daily check-ins that connect your skin, sleep and stress.</p></div>
+      <div class="feat"><h3>Treatment routines</h3><p>Build a routine with steps you tick off — morning and evening.</p></div>
+      <div class="feat"><h3>Find a dermatologist</h3><p>Clinics near you from OpenStreetMap, with directions and call buttons.</p></div>
+      <div class="feat"><h3>Doctor Report</h3><p>A clean PDF of your scans and trends to bring to an appointment.</p></div>
+      <div class="feat"><h3>Ask DermoAI</h3><p>A built-in assistant that knows skin health and the app itself.</p></div>
+    </div>
+  </section>
+
+  <!-- final cta -->
+  <section class="final wrap">
+    <h2>Start with one spot.</h2>
+    <p class="lede">The next time you notice something, you'll know what to look for — and when to act.</p>
+    <a class="btn btn-pine" href="https://play.google.com/store">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 1.8 13.7 12 3.6 22.2a1.6 1.6 0 0 1-.6-1.2V3a1.6 1.6 0 0 1 .6-1.2zm11.5 8.5 2.8-2.8 3.5 2a2 2 0 0 1 0 3.5l-3.5 2-2.8-2.8-1.9-1.9 1.9-2zM3.6 22.2c.2.1.4.2.7 0l9.4-5.4-2.6-2.6-7.5 8zM3.6 1.8 10.9 9.6l2.6-2.6L4.1 1.8a.7.7 0 0 0-.5.2zm12.1 10.3 1.9-1.9-1.9-1.9-2.1 1.9 2.1 1.9z"/></svg>
+      Get DermoAI
+    </a>
+    <p class="hero-note">Android · free</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <span>© 2026 DermoAI</span>
+      <span>Educational skin-health awareness</span>
+    </div>
+    <p class="disclaimer">DermoAI is an educational and awareness tool. It does not provide medical advice, diagnoses or treatment plans, and it does not replace a consultation with a qualified dermatologist or healthcare provider. If you notice a changing mole, a bleeding or ulcerating spot, a rapidly spreading rash, or any other concerning sign, please see a professional promptly.</p>
+  </div>
+</footer>
+
+<script>
+  const readout = document.getElementById('readout');
+  const buttons = document.querySelectorAll('.abc button');
+  let last = null;
+
+  function show(btn) {
+    if (last) last.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('aria-pressed', 'true');
+    last = btn;
+    const parts = btn.dataset.meaning.split(' — ');
+    readout.innerHTML = '<strong>' + btn.dataset.letter + ' · ' + parts[0] + '</strong><span>' + parts[1] + '</span>';
+  }
+  function clear(btn) {
+    btn.setAttribute('aria-pressed', 'false');
+    if (last === btn) last = null;
+    readout.innerHTML = '<span>Hover or tap a letter — the five signs dermatologists teach.</span>';
+  }
+  buttons.forEach(btn => {
+    btn.addEventListener('mouseenter', () => show(btn));
+    btn.addEventListener('mouseleave', () => clear(btn));
+    btn.addEventListener('focus', () => show(btn));
+    btn.addEventListener('blur', () => clear(btn));
+    btn.addEventListener('click', () => { btn.getAttribute('aria-pressed') === 'true' ? clear(btn) : show(btn); });
+  });
+</script>
+</body>
+</html>
