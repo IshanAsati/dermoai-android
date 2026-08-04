@@ -86,7 +86,7 @@ fun SignInScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (viewModel.isLocalAuthMode) {

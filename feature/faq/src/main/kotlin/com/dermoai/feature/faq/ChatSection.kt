@@ -99,7 +99,7 @@ fun ChatSection(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(messages) { message -> MessageBubble(message) }
@@ -111,7 +111,7 @@ fun ChatSection(
 
         error?.let { e ->
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -128,7 +128,7 @@ fun ChatSection(
 
         // Input row
         Row(
-            Modifier.fillMaxWidth().padding(12.dp).navigationBarsPadding(),
+            Modifier.fillMaxWidth().padding(20.dp).navigationBarsPadding(),
             verticalAlignment = Alignment.Bottom,
         ) {
             OutlinedTextField(

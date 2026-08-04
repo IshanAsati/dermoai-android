@@ -164,7 +164,7 @@ fun SkinMindScreen(
                     Text("Could not start recording — microphone permission required.", style = MaterialTheme.typography.labelSmall, color = DermoColors.CoralText)
                 }
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(20.dp))
 
                 NeuButton(
                     onClick = { viewModel.submit(userId) },
@@ -176,7 +176,7 @@ fun SkinMindScreen(
                     Text("Save Check-in", style = MaterialTheme.typography.titleMedium)
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

@@ -54,6 +54,7 @@ fun MoreHubScreen(
         GradientHeader(
             title = stringResource(R.string.more_title),
         )
+        MedicalDisclaimerBar()
 
         Column(
             modifier = Modifier
@@ -114,7 +115,6 @@ fun MoreHubScreen(
             }
         }
 
-        MedicalDisclaimerBar()
     }
 }
 

@@ -122,7 +122,7 @@ fun TimelineScreen(
         } else {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f),
             ) {

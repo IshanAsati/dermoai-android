@@ -188,7 +188,7 @@ private fun ScanHeroCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
         color = DermoColors.TealLight,
         onClick = onClick,
     ) {
-        Row(Modifier.fillMaxWidth().padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             NeuSurface(
                 Modifier.size(56.dp),
                 style = NeuSurfaceStyle.Inset,
@@ -334,7 +334,7 @@ private fun EnvironmentAlertCard(alert: EnvironmentAlert, timeLabel: String) {
         shape = RoundedCornerShape(24.dp),
         color = accent.copy(alpha = 0.08f),
     ) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             NeuSurface(
                 Modifier.size(44.dp),
                 style = NeuSurfaceStyle.Inset,
@@ -345,7 +345,7 @@ private fun EnvironmentAlertCard(alert: EnvironmentAlert, timeLabel: String) {
                     Icon(icon, null, tint = textColor)
                 }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(alert.label(), style = MaterialTheme.typography.labelLarge, color = textColor, fontWeight = FontWeight.SemiBold)
                 Text(alert.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)

@@ -97,7 +97,7 @@ fun TreatmentScreen(
             }
         } else if (selectedId != null) {
             val routine = routines.find { it.id == selectedId }
-            LazyColumn(Modifier.weight(1f).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { viewModel.selectRoutine(null) }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
@@ -151,7 +151,7 @@ fun TreatmentScreen(
                 }
             }
         } else {
-            LazyColumn(Modifier.weight(1f).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LazyColumn(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(routines) { routine ->
                     NeuSurface(
                         modifier = Modifier.fillMaxWidth(),
