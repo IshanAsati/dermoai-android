@@ -15,4 +15,6 @@
     <string name="more_analytics">বিশ্লেষণ</string>
     <string name="more_reports">ডাক্তার রিপোর্ট</string>
     <string name="more_settings">সেটিংস</string>
+    <string name="more_faq">সাধারণ প্রশ্ন</string>
+    <string name="more_find_dermatologist">চর্মরোগ বিশেষজ্ঞ খুঁজুন</string>
 </resources>

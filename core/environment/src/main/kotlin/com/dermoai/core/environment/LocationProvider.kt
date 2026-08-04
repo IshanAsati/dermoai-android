@@ -1,6 +1,7 @@
 package com.dermoai.core.environment
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -15,12 +16,14 @@ import javax.inject.Singleton
 class LocationProvider @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
+    @SuppressLint("MissingPermission") // Runtime-guarded by checkSelfPermission below; lint can't trace the guard through the withContext lambda.
     suspend fun lastCoarseLocation(): Pair<Double, Double>? {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return null
-        }
         return withContext(Dispatchers.IO) {
             val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return@withContext null
+            val granted = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) return@withContext null
             val providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
             for (provider in providers) {
                 val loc = lm.getLastKnownLocation(provider) ?: continue

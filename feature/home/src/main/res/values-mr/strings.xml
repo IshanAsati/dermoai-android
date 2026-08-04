@@ -7,6 +7,8 @@
     <string name="home_cta_scan">त्वचा स्कॅन करा</string>
     <string name="home_cta_scan_subtitle">शैक्षणिक माहितीसाठी फोटो काढा</string>
     <string name="home_latest_title">नवीनतम स्कॅन</string>
+    <string name="home_latest_view">तपशील पहा</string>
+    <string name="home_latest_thumb_desc">नवीनतम स्कॅन थंबनेल</string>
     <string name="home_no_scans_title">अद्याप कोणतेही स्कॅन नाहीत</string>
     <string name="home_no_scans_body">तुमचा पहिला त्वचा स्कॅन करण्यासाठी कॅमेरा आयकॉनवर टॅप करा.</string>
     <string name="home_treatment_title">उपचार</string>
@@ -14,4 +16,8 @@
     <string name="home_no_treatment_body">तुमची त्वचा निगा ट्रॅक करा आणि अधिक जाणून घ्या.</string>
     <string name="home_skinnmind_today">आजचे चेक-इन</string>
     <string name="home_skinnmind_pending">चेक-इन बाकी</string>
+    <plurals name="home_streak_days">
+        <item quantity="one">%d दिवसांची स्ट्रीक</item>
+        <item quantity="other">%d दिवसांची स्ट्रीक</item>
+    </plurals>
 </resources>

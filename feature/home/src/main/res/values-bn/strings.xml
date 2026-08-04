@@ -7,6 +7,8 @@
     <string name="home_cta_scan">ত্বক স্ক্যান করুন</string>
     <string name="home_cta_scan_subtitle">শিক্ষামূলক তথ্যের জন্য একটি ছবি তুলুন</string>
     <string name="home_latest_title">সর্বশেষ স্ক্যান</string>
+    <string name="home_latest_view">বিস্তারিত দেখুন</string>
+    <string name="home_latest_thumb_desc">সর্বশেষ স্ক্যান থাম্বনেইল</string>
     <string name="home_no_scans_title">এখনো কোনো স্ক্যান নেই</string>
     <string name="home_no_scans_body">আপনার প্রথম ত্বক স্ক্যান করতে ক্যামেরা আইকনে ট্যাপ করুন।</string>
     <string name="home_treatment_title">চিকিৎসা</string>
@@ -14,4 +16,8 @@
     <string name="home_no_treatment_body">আপনার ত্বকের যত্ন ট্র্যাক করুন এবং আরও জানুন।</string>
     <string name="home_skinnmind_today">আজকের চেক-ইন</string>
     <string name="home_skinnmind_pending">চেক-ইন বাকি</string>
+    <plurals name="home_streak_days">
+        <item quantity="one">%d দিনের স্ট্রিক</item>
+        <item quantity="other">%d দিনের স্ট্রিক</item>
+    </plurals>
 </resources>

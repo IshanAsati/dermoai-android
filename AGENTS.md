@@ -68,7 +68,7 @@ Full verbose analysis: desktop `readme.md`. Original project AGENTS.md: `AGENTS.
 
 
 ## Delivery status (IN PROGRESS — user stopped mid-verification)
-**DONE (code complete, NOT yet build-verified end-to-end):**
+**DONE (code complete; BUILD-VERIFIED end-to-end as of this session):**
 - **Phase 1 severity messaging:** `SeverityMessageEngine` (`core/domain/.../severity/`) — tier→guidance, confidence %, runner-up ≥15%; `SeveritySummaryLine` in `ScanScreens.kt`; templates in `feature/scan/res/values/strings.xml`. Unit tests pass.
 - **Phase 2 rule-based filter:** `RuleBasedFilterEngine` (`core/domain/.../rules/`, `@Inject`) — 8 escalate-or-annotate rules, never downgrades, transparent `RuleAdjustment`s; storage wired (`UserProfileDetailsDao` bound; onboarding persists; Settings "Skin profile" dialog); applied in `ScanViewModel.runInference(photoPath, userId)` → `ruleAdjustments` + `referralFlagged`. Unit tests pass (24 total in core/domain incl. severity).
 - **Phase 3 FAQ:** `feature/faq` module — bundled JSON (60 entries, 9 categories) at `assets/faq/faq_content.json`, `FaqRepository` (token search), `FaqViewModel` (exposes `search`), `FaqScreen` (search + category chips + expandable cards + empty/error states), `FaqRoute` + More-hub row.
@@ -78,6 +78,6 @@ Full verbose analysis: desktop `readme.md`. Original project AGENTS.md: `AGENTS.
 - **Stale AGENTS.md findings re-verified:** Report `Ready` reset, Timeline null-scan + delete failure, breathing cap, Analytics 9sp, Switch labels, placeholders → see FIXED table in `docs/BUGS.md`.
 
 **NOT DONE / NEXT STEPS:**
-- **Final verification build NOT confirmed:** last `assembleDebug` attempts hit 2 compile errors in `feature/finder` (`Phone` icon not in AutoMirrored set; missing `mutableStateOf`/`setValue` imports) — both FIXED, but the re-run was stopped by the user. **Run `export JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot" && ./gradlew.bat :core:domain:testDebugUnitTest assembleDebug` next session and fix any remaining errors.**
-- Lint + emulator pass: not done.
+- **Final verification build CONFIRMED ✅** (this session): `export JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot" && ./gradlew.bat :core:domain:testDebugUnitTest assembleDebug` → **BUILD SUCCESSFUL in 1m 28s** (742 tasks: 13 executed, 729 up-to-date); 24/24 core/domain unit tests pass (14 `RuleBasedFilterEngine` + 10 `SeverityMessageEngine`); `app-debug.apk` produced. Only remaining warning: pre-existing `Locale(String)` deprecation in `MainActivity.kt:61`.
+- Lint pass: **DONE ✅** (this session) — `./gradlew.bat lintDebug` → **BUILD SUCCESSFUL**, 0 errors. Fixed: `LocationProvider.kt` `MissingPermission` false positive (guard moved inside `withContext` lambda + `@SuppressLint` — lint can't trace the runtime `checkSelfPermission` through the lambda); MissingTranslation for `home_latest_view`/`home_latest_thumb_desc`/`home_streak_days` (hi/mr/bn) and `more_faq`/`more_find_dermatologist` (hi/te/mr/bn/ta). 98 remaining warnings are all informational (dep version bumps, AppBundleLocaleChanges). Emulator pass: not done (see emulator notes in Priorities #1/#2 — screencap unreliable headless on this machine).
 - `app/src/main/assets/ml/skin_model.tflite` MISSING (B-01) — inference code complete, scan fails at runtime until the binary is added; blocks live scan demo.
