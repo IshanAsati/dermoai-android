@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#EAE4DA">
 <title>DermoAI — Look closer at your skin</title>
 <meta name="description" content="DermoAI is a skin-health awareness app: photograph a spot, get an educational assessment, and track how it changes over time.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Ccircle cx='54' cy='54' r='22' fill='none' stroke='%231E6E5C' stroke-width='7'/%3E%3Ccircle cx='54' cy='54' r='6.5' fill='%231E6E5C'/%3E%3C/svg%3E">
@@ -44,6 +45,12 @@
   a { color: var(--pine); }
   :focus-visible { outline: 3px solid var(--pine); outline-offset: 3px; border-radius: 4px; }
   .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+  /* sticky header clearance for anchor targets */
+  section[id] { scroll-margin-top: 88px; }
+  /* avoid iOS double-tap zoom delay on interactive elements */
+  .btn, nav a, .abc button, .brand { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  /* balance headings to prevent widows */
+  h1, h2, h3 { text-wrap: balance; }
 
   /* scroll progress indicator */
   #progress { position: fixed; top: 0; left: 0; height: 3px; width: 100%; background: transparent; z-index: 60; pointer-events: none; }
@@ -65,6 +72,9 @@
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1140px; margin: 0 auto; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--ink); text-decoration: none; }
   .brand svg { width: 30px; height: 30px; }
+  /* skip link — visually hidden until focused */
+  .skip-link { position: absolute; left: -9999px; top: 0; background: var(--pine); color: #fff; padding: 12px 20px; border-radius: 0 0 12px 0; font-weight: 600; z-index: 70; }
+  .skip-link:focus { left: 0; }
   nav ul { display: flex; gap: 28px; list-style: none; }
   nav a { text-decoration: none; color: var(--slate); font-size: 14.5px; font-weight: 500; cursor: pointer; }
   nav a:hover { color: var(--pine); }
@@ -239,12 +249,13 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
 <div id="progress" aria-hidden="true"><i></i></div>
 
 <header>
   <nav>
-    <a class="brand" href="#top" aria-label="DermoAI home">
+    <a class="brand" href="#main" aria-label="DermoAI home">
       <svg viewBox="0 0 108 108" aria-hidden="true">
         <circle cx="54" cy="54" r="22" fill="none" stroke="#1E6E5C" stroke-width="7"/>
         <circle cx="54" cy="54" r="6.5" fill="#1E6E5C"/>
@@ -261,7 +272,7 @@
   </nav>
 </header>
 
-<main id="top">
+<main id="main">
 
   <!-- chapter 0 — intro hook -->
   <section class="chapter c0">
@@ -311,19 +322,19 @@
       </div>
       <div class="problems">
         <article class="problem reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
           <h3>Appointments are slow</h3>
           <p>Dermatologists book out for weeks. A spot that worries you today has to wait.</p>
         </article>
         <article class="problem reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
           <h3>The internet scares you</h3>
           <p>Search a symptom and every result is the worst case. No context, no confidence.</p>
         </article>
         <article class="problem reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
           <h3>Changes are easy to miss</h3>
-          <p>Moles change slowly. Without a record, "is this different?" is a guess.</p>
+          <p>Moles change slowly. Without a record, “is this different?” is a guess.</p>
         </article>
       </div>
       <a class="mini-cta reveal" href="#how">DermoAI gives you a way to look ↓</a>
@@ -335,7 +346,7 @@
     <div class="wrap">
       <div class="section-head reveal">
         <p class="eyebrow">Chapter 02 — The journey</p>
-        <h2>Three steps, one honest loop.</h2>
+        <h2>3 steps, one honest loop.</h2>
         <p class="lede">DermoAI never diagnoses. It helps you see clearly and track change — the two things that matter most.</p>
       </div>
       <div class="steps">
@@ -377,7 +388,7 @@
 
       <div class="features">
         <div class="feat reveal"><h3>Timeline</h3><p>Every scan, dated and compared, so change is visible at a glance.</p></div>
-        <div class="feat reveal"><h3>SkinMind</h3><p>Thirty-second daily check-ins that connect your skin, sleep and stress.</p></div>
+        <div class="feat reveal"><h3>SkinMind</h3><p>30-second daily check-ins that connect your skin, sleep and stress.</p></div>
         <div class="feat reveal"><h3>Treatment routines</h3><p>Build a routine with steps you tick off — morning and evening.</p></div>
         <div class="feat reveal"><h3>Find a dermatologist</h3><p>Clinics near you from OpenStreetMap, with directions and call buttons.</p></div>
         <div class="feat reveal"><h3>Doctor Report</h3><p>A clean PDF of your scans and trends to bring to an appointment.</p></div>
@@ -427,9 +438,14 @@
   // scroll progress indicator (rAF-throttled)
   const progress = document.querySelector('#progress i');
   let ticking = false;
+  let maxScroll = 0;
+  function measure() {
+    maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  }
+  window.addEventListener('resize', measure, { passive: true });
+  measure();
   function updateProgress() {
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    progress.style.transform = 'scaleX(' + (max > 0 ? window.scrollY / max : 0) + ')';
+    progress.style.transform = 'scaleX(' + (maxScroll > 0 ? window.scrollY / maxScroll : 0) + ')';
     ticking = false;
   }
   window.addEventListener('scroll', () => {
