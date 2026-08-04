@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#2DD4BF</color>
+    <!-- Launcher icon background: pine (DermoColors.Teal #1E6E5C) — the app's primary accent. -->
+    <color name="ic_launcher_background">#1E6E5C</color>
 </resources>

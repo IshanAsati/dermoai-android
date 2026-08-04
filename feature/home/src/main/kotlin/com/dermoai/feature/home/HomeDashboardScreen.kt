@@ -360,7 +360,7 @@ private fun EnvironmentAlertCard(alert: EnvironmentAlert, timeLabel: String) {
 @Composable
 private fun InsightCard(insight: SkinInsight) {
     val pair = when (insight.type) {
-        InsightType.SLEEP_CORRELATION -> DermoColors.VioletAccent to Icons.Outlined.Bedtime
+        InsightType.SLEEP_CORRELATION -> DermoColors.TealAccent to Icons.Outlined.Bedtime
         InsightType.STRESS_CORRELATION -> DermoColors.SoftCoral to Icons.Outlined.Warning
         InsightType.SYMPTOM_IMPROVING -> DermoColors.HealthGreen to Icons.Outlined.Favorite
         InsightType.ADHERENCE_IMPROVEMENT -> DermoColors.TealAccent to Icons.Outlined.Lightbulb

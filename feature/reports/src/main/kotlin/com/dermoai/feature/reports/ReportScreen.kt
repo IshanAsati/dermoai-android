@@ -122,7 +122,7 @@ fun ReportScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    containerColor = DermoColors.VioletAccent,
+                    containerColor = DermoColors.TealAccent,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ) { Text("Open PDF") }
             }

@@ -31,6 +31,7 @@ android {
 
 dependencies {
     implementation(project(":core:common"))
+    implementation(project(":core:data"))
     implementation(project(":core:domain"))
     implementation(project(":core:ui"))
     implementation(platform(libs.androidx.compose.bom))
@@ -41,8 +42,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.okhttp)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

@@ -2,6 +2,7 @@ package com.dermoai.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dermoai.core.database.dao.UserProfileDetailsDao
 import com.dermoai.core.domain.model.AuthUser
 import com.dermoai.core.domain.usecase.auth.ObserveAuthStateUseCase
 import com.dermoai.core.domain.usecase.auth.ObserveOnboardingUseCase
@@ -10,6 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,6 +25,8 @@ class SessionViewModel @Inject constructor(
     observeAuthState: ObserveAuthStateUseCase,
     observeOnboarding: ObserveOnboardingUseCase,
     private val signOutUseCase: SignOutUseCase,
+    private val userProfileDetailsDao: UserProfileDetailsDao,
+    private val onboardingProfileStore: OnboardingProfileStore,
 ) : ViewModel() {
 
     val sessionState: StateFlow<SessionUiState> = combine(
@@ -38,6 +43,19 @@ class SessionViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = SessionUiState(isLoading = true),
     )
+
+    init {
+        // Flush the profile staged during onboarding (which runs before sign-in)
+        // into Room once a real user exists — otherwise it is silently discarded.
+        viewModelScope.launch {
+            val user = sessionState.filter { it.user != null }.first().user ?: return@launch
+            val staged = onboardingProfileStore.profile.first()
+            if (staged != OnboardingProfile()) {
+                userProfileDetailsDao.upsert(staged.toEntity(user.id))
+                onboardingProfileStore.clear()
+            }
+        }
+    }
 
     fun signOut() {
         viewModelScope.launch { signOutUseCase() }

@@ -48,6 +48,16 @@ class UserPreferencesDataStore @Inject constructor(
         prefs[KEY_ENV_ALERTS] ?: true
     }
 
+    /** DeepSeek API key supplied by the user for the in-app AI assistant (stored on-device only). */
+    val deepSeekApiKey: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[KEY_DEEPSEEK_API_KEY]
+    }
+
+    /** DeepSeek model name for the AI assistant (defaults to [DEFAULT_DEEPSEEK_MODEL]). */
+    val deepSeekModel: Flow<String> = dataStore.data.map { prefs ->
+        prefs[KEY_DEEPSEEK_MODEL] ?: DEFAULT_DEEPSEEK_MODEL
+    }
+
     suspend fun setOnboarded(value: Boolean) {
         dataStore.edit { it[KEY_ONBOARDED] = value }
     }
@@ -79,6 +89,16 @@ class UserPreferencesDataStore @Inject constructor(
         dataStore.edit { it[KEY_ENV_ALERTS] = enabled }
     }
 
+    suspend fun setDeepSeekApiKey(key: String?) {
+        dataStore.edit {
+            if (key == null) it.remove(KEY_DEEPSEEK_API_KEY) else it[KEY_DEEPSEEK_API_KEY] = key
+        }
+    }
+
+    suspend fun setDeepSeekModel(model: String) {
+        dataStore.edit { it[KEY_DEEPSEEK_MODEL] = model }
+    }
+
     companion object {
         private val KEY_ONBOARDED = booleanPreferencesKey("is_onboarded")
         private val KEY_USER_ID = stringPreferencesKey("active_user_id")
@@ -86,5 +106,10 @@ class UserPreferencesDataStore @Inject constructor(
         private val KEY_DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         private val KEY_LANGUAGE = stringPreferencesKey("language_code")
         private val KEY_ENV_ALERTS = booleanPreferencesKey("env_alerts_enabled")
+        private val KEY_DEEPSEEK_API_KEY = stringPreferencesKey("deepseek_api_key")
+        private val KEY_DEEPSEEK_MODEL = stringPreferencesKey("deepseek_model")
+
+        /** DeepSeek's flagship chat model — the app default; user can override in Settings. */
+        const val DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
     }
 }

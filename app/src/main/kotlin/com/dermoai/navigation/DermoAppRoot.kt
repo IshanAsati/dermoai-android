@@ -340,7 +340,7 @@ fun DermoAppRoot(
                 )
             }
             composable<FaqRoute> {
-                FaqScreen()
+                FaqScreen(onOpenSettings = { navController.navigate(SettingsRoute) })
             }
             composable<FindDermatologistRoute> {
                 FinderScreen()

@@ -57,6 +57,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,7 +105,9 @@ import com.dermoai.core.ui.components.NeuSurfaceStyle
 import com.dermoai.core.ui.components.OutlinedNeuButton
 import com.dermoai.core.ui.theme.DermoColors
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.Executors
@@ -185,38 +188,46 @@ class ScanViewModel @Inject constructor(
         inferenceState = InferenceUiState.Loading
         ruleAdjustments = emptyList()
         referralFlagged = false
-        val bitmap = BitmapFactory.decodeFile(photoPath)
-        if (bitmap == null) {
-            inferenceState = InferenceUiState.Error("Failed to load image")
-            return
-        }
-        if (!inferenceEngine.isReady) {
-            when (val init = inferenceEngine.initialize()) {
+        try {
+            // Decode the full-resolution capture off the main thread — an in-memory
+            // decode here can take hundreds of ms and ANR on low-memory devices.
+            val bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(photoPath) }
+            if (bitmap == null) {
+                inferenceState = InferenceUiState.Error("Failed to load image")
+                return
+            }
+            if (!inferenceEngine.isReady) {
+                when (val init = inferenceEngine.initialize()) {
+                    is AppResult.Error -> {
+                        inferenceState = InferenceUiState.Error("Model not available")
+                        return
+                    }
+                    else -> {}
+                }
+            }
+            when (val result = inferenceEngine.predict(bitmap)) {
+                is AppResult.Success -> {
+                    val profile = userProfileDetailsDao.getById(userId)?.toSkinProfile()
+                    if (profile != null && profile.isPopulated) {
+                        val filtered = ruleEngine.apply(result.data, profile)
+                        inferenceResult = filtered.result
+                        ruleAdjustments = filtered.adjustments
+                        referralFlagged = filtered.referralFlagged
+                    } else {
+                        inferenceResult = result.data
+                        referralFlagged = result.data.topPrediction.severity >= ConditionSeverity.HIGH
+                    }
+                    inferenceState = InferenceUiState.Ready
+                }
                 is AppResult.Error -> {
-                    inferenceState = InferenceUiState.Error("Model not available")
-                    return
+                    inferenceState = InferenceUiState.Error(result.message ?: "Unknown error")
                 }
                 else -> {}
             }
-        }
-        when (val result = inferenceEngine.predict(bitmap)) {
-            is AppResult.Success -> {
-                val profile = userProfileDetailsDao.getById(userId)?.toSkinProfile()
-                if (profile != null && profile.isPopulated) {
-                    val filtered = ruleEngine.apply(result.data, profile)
-                    inferenceResult = filtered.result
-                    ruleAdjustments = filtered.adjustments
-                    referralFlagged = filtered.referralFlagged
-                } else {
-                    inferenceResult = result.data
-                    referralFlagged = result.data.topPrediction.severity >= ConditionSeverity.HIGH
-                }
-                inferenceState = InferenceUiState.Ready
-            }
-            is AppResult.Error -> {
-                inferenceState = InferenceUiState.Error(result.message ?: "Unknown error")
-            }
-            else -> {}
+        } catch (e: Exception) {
+            // Any unexpected failure must land on the error state — never leave
+            // the spinner stuck in Loading forever.
+            inferenceState = InferenceUiState.Error("Analysis failed")
         }
     }
 
@@ -279,6 +290,7 @@ fun ScanEntryScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var permissionDenied by remember { mutableStateOf(false) }
     var galleryError by remember { mutableStateOf(false) }
 
@@ -299,18 +311,22 @@ fun ScanEntryScreen(
         uri?.let { imgUri ->
             val dest = File(context.filesDir, "photos").also { it.mkdirs() }
             val outPath = File(dest, "gallery_${System.currentTimeMillis()}.jpg")
-            try {
-                context.contentResolver.openInputStream(imgUri)?.use { i ->
-                    FileOutputStream(outPath).use { o -> i.copyTo(o) }
+            // Stream the (potentially large) gallery image off the main thread.
+            scope.launch {
+                val ok = withContext(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver.openInputStream(imgUri)?.use { i ->
+                            FileOutputStream(outPath).use { o -> i.copyTo(o) }
+                        }
+                        outPath.length() > 0
+                    }.getOrDefault(false)
                 }
-                if (outPath.length() > 0) {
+                if (ok) {
                     galleryError = false
                     onPhotoPicked(outPath.absolutePath)
                 } else {
                     galleryError = true
                 }
-            } catch (_: Exception) {
-                galleryError = true
             }
         }
     }
@@ -444,9 +460,10 @@ fun ScanCaptureScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TopPill(onClick = onBack, icon = Icons.AutoMirrored.Outlined.ArrowBack, desc = "Back")
                 TopPill(
+                    // Camera cycle is AUTO→OFF→ON; keep the icon in sync.
                     onClick = { flashMode = (flashMode + 1) % 3; viewModel.toggleFlash() },
                     icon = when (flashMode) {
-                        0 -> Icons.Outlined.FlashAuto; 1 -> Icons.Outlined.FlashOn; else -> Icons.Outlined.FlashOff
+                        0 -> Icons.Outlined.FlashAuto; 1 -> Icons.Outlined.FlashOff; else -> Icons.Outlined.FlashOn
                     },
                     desc = "Flash",
                 )
@@ -572,6 +589,10 @@ private fun CropOverlay(
         fun pxX(fraction: Float) = with(density) { (fraction * boxW - halfHandle.value).dp.toPx() }.toInt()
         fun pxY(fraction: Float) = with(density) { (fraction * boxH - halfHandle.value).dp.toPx() }.toInt()
 
+        // Drag handlers must read the CURRENT rect — pointerInput(Unit) keeps a
+        // first-composition closure, so dragging would snap back on every event.
+        val currentCropRect by rememberUpdatedState(cropRect)
+
         // Top-left handle
         Box(
             Modifier.offset { IntOffset(pxX(cropRect.offsetX), pxY(cropRect.offsetY)) }
@@ -581,10 +602,10 @@ private fun CropOverlay(
                         change.consume()
                         val dx = dragAmount.x / (boxW * density.density)
                         val dy = dragAmount.y / (boxH * density.density)
-                        val newL = (cropRect.offsetX + dx).coerceAtLeast(0.01f)
-                        val newT = (cropRect.offsetY + dy).coerceAtLeast(0.01f)
-                        val newW = (cropRect.width - dx).coerceAtLeast(0.15f)
-                        val newH = (cropRect.height - dy).coerceAtLeast(0.15f)
+                        val newL = (currentCropRect.offsetX + dx).coerceAtLeast(0.01f)
+                        val newT = (currentCropRect.offsetY + dy).coerceAtLeast(0.01f)
+                        val newW = (currentCropRect.width - dx).coerceAtLeast(0.15f)
+                        val newH = (currentCropRect.height - dy).coerceAtLeast(0.15f)
                         if (newL + newW <= 0.98f && newT + newH <= 0.98f) {
                             onCropChange(CropRect(newL, newT, newW, newH))
                         }
@@ -604,11 +625,11 @@ private fun CropOverlay(
                         change.consume()
                         val dx = dragAmount.x / (boxW * density.density)
                         val dy = dragAmount.y / (boxH * density.density)
-                        val newT = (cropRect.offsetY + dy).coerceAtLeast(0.01f)
-                        val newW = (cropRect.width + dx).coerceAtLeast(0.15f)
-                        val newH = (cropRect.height - dy).coerceAtLeast(0.15f)
-                        if (cropRect.offsetX + newW <= 0.98f && newT + newH <= 0.98f) {
-                            onCropChange(CropRect(cropRect.offsetX, newT, newW, newH))
+                        val newT = (currentCropRect.offsetY + dy).coerceAtLeast(0.01f)
+                        val newW = (currentCropRect.width + dx).coerceAtLeast(0.15f)
+                        val newH = (currentCropRect.height - dy).coerceAtLeast(0.15f)
+                        if (currentCropRect.offsetX + newW <= 0.98f && newT + newH <= 0.98f) {
+                            onCropChange(CropRect(currentCropRect.offsetX, newT, newW, newH))
                         }
                     }
                 },
@@ -626,11 +647,11 @@ private fun CropOverlay(
                         change.consume()
                         val dx = dragAmount.x / (boxW * density.density)
                         val dy = dragAmount.y / (boxH * density.density)
-                        val newL = (cropRect.offsetX + dx).coerceAtLeast(0.01f)
-                        val newW = (cropRect.width - dx).coerceAtLeast(0.15f)
-                        val newH = (cropRect.height + dy).coerceAtLeast(0.15f)
-                        if (newL + newW <= 0.98f && cropRect.offsetY + newH <= 0.98f) {
-                            onCropChange(CropRect(newL, cropRect.offsetY, newW, newH))
+                        val newL = (currentCropRect.offsetX + dx).coerceAtLeast(0.01f)
+                        val newW = (currentCropRect.width - dx).coerceAtLeast(0.15f)
+                        val newH = (currentCropRect.height + dy).coerceAtLeast(0.15f)
+                        if (newL + newW <= 0.98f && currentCropRect.offsetY + newH <= 0.98f) {
+                            onCropChange(CropRect(newL, currentCropRect.offsetY, newW, newH))
                         }
                     }
                 },
@@ -648,10 +669,10 @@ private fun CropOverlay(
                         change.consume()
                         val dx = dragAmount.x / (boxW * density.density)
                         val dy = dragAmount.y / (boxH * density.density)
-                        val newW = (cropRect.width + dx).coerceAtLeast(0.15f)
-                        val newH = (cropRect.height + dy).coerceAtLeast(0.15f)
-                        if (cropRect.offsetX + newW <= 0.98f && cropRect.offsetY + newH <= 0.98f) {
-                            onCropChange(CropRect(cropRect.offsetX, cropRect.offsetY, newW, newH))
+                        val newW = (currentCropRect.width + dx).coerceAtLeast(0.15f)
+                        val newH = (currentCropRect.height + dy).coerceAtLeast(0.15f)
+                        if (currentCropRect.offsetX + newW <= 0.98f && currentCropRect.offsetY + newH <= 0.98f) {
+                            onCropChange(CropRect(currentCropRect.offsetX, currentCropRect.offsetY, newW, newH))
                         }
                     }
                 },
@@ -678,10 +699,10 @@ private fun CropOverlay(
                         change.consume()
                         val dx = dragAmount.x / (boxW * density.density)
                         val dy = dragAmount.y / (boxH * density.density)
-                        val newL = (cropRect.offsetX + dx).coerceAtLeast(0.01f)
-                        val newT = (cropRect.offsetY + dy).coerceAtLeast(0.01f)
-                        if (newL + cropRect.width <= 0.98f && newT + cropRect.height <= 0.98f) {
-                            onCropChange(CropRect(newL, newT, cropRect.width, cropRect.height))
+                        val newL = (currentCropRect.offsetX + dx).coerceAtLeast(0.01f)
+                        val newT = (currentCropRect.offsetY + dy).coerceAtLeast(0.01f)
+                        if (newL + currentCropRect.width <= 0.98f && newT + currentCropRect.height <= 0.98f) {
+                            onCropChange(CropRect(newL, newT, currentCropRect.width, currentCropRect.height))
                         }
                     }
                 },
@@ -896,7 +917,12 @@ fun ScanResultsScreen(
         Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedNeuButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Retake") }
             NeuButton(
-                onClick = { scope.launch { viewModel.saveScan(userId, photoPath); onSavedToTimeline() } },
+                onClick = {
+                    scope.launch {
+                        runCatching { viewModel.saveScan(userId, photoPath) }
+                        onSavedToTimeline()
+                    }
+                },
                 modifier = Modifier.weight(1f),
                 enabled = result != null,
                 containerColor = DermoColors.TealAccent,

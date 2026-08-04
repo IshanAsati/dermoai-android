@@ -187,7 +187,7 @@ private fun TimelineCard(
                 }
                 if (scan.voiceNotePath != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Mic, stringResource(R.string.timeline_voice_note), Modifier.size(14.dp), tint = DermoColors.VioletAccent)
+                        Icon(Icons.Outlined.Mic, stringResource(R.string.timeline_voice_note), Modifier.size(14.dp), tint = DermoColors.TealAccent)
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.timeline_voice_note), style = MaterialTheme.typography.labelSmall, color = DermoColors.TealText)
                     }
@@ -219,6 +219,7 @@ fun TimelineDetailScreen(
     var recording by remember { mutableStateOf(false) }
     var mediaRecorder by remember { mutableStateOf<android.media.MediaRecorder?>(null) }
     var voiceNotePath by remember { mutableStateOf<String?>(null) }
+    var recordingFailed by remember { mutableStateOf(false) }
     val scope2 = rememberCoroutineScope()
 
     fun startRecording() {
@@ -236,14 +237,21 @@ fun TimelineDetailScreen(
             mediaRecorder = recorder
             voiceNotePath = file.absolutePath
             recording = true
-        } catch (_: Exception) { recording = false }
+            recordingFailed = false
+        } catch (_: Exception) { recording = false; recordingFailed = true }
     }
 
     fun stopRecording() {
         mediaRecorder?.apply { try { stop() } catch (_: Exception) {}; release() }
         mediaRecorder = null
         recording = false
+        // Persist the recorded note back to the scan so it survives navigation.
+        voiceNotePath?.let { path -> viewModel.saveVoiceNote(scanId, path) }
     }
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) startRecording() }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -320,12 +328,9 @@ fun TimelineDetailScreen(
             if (scan?.voiceNotePath != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Mic, null, tint = DermoColors.VioletAccent)
+                        Icon(Icons.Outlined.Mic, null, tint = DermoColors.TealAccent)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.timeline_voice_attached), style = MaterialTheme.typography.bodyMedium)
-                    }
-                    IconButton(onClick = { /* Play/stop voice */ }) {
-                        Icon(Icons.Outlined.PlayArrow, stringResource(R.string.timeline_play), tint = DermoColors.VioletAccent)
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -333,7 +338,15 @@ fun TimelineDetailScreen(
 
             // Record new voice note button
             NeuButton(
-                onClick = { if (recording) stopRecording() else startRecording() },
+                onClick = {
+                    if (recording) {
+                        stopRecording()
+                    } else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                        startRecording()
+                    } else {
+                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
                 containerColor = DermoColors.TealAccent.copy(alpha = 0.1f),
                 contentColor = DermoColors.TealAccent,
                 shape = RoundedCornerShape(12.dp),
@@ -341,6 +354,13 @@ fun TimelineDetailScreen(
                 Icon(if (recording) Icons.Outlined.SelfImprovement else Icons.Outlined.Mic, null)
                 Spacer(Modifier.width(8.dp))
                 Text(if (recording) stringResource(R.string.timeline_record_stop) else stringResource(R.string.timeline_record_add))
+            }
+            if (recordingFailed) {
+                Text(
+                    stringResource(R.string.timeline_record_failed),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = DermoColors.CoralText,
+                )
             }
             Spacer(Modifier.height(16.dp))
 

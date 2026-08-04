@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AI assistant (DeepSeek) settings -->
+    <string name="settings_ai_title">AI assistant</string>
+    <string name="settings_ai_subtitle">Ask DermoAI about skin health or how to use the app. Uses your own DeepSeek API key — stored only on this device and sent to DeepSeek only when you chat.</string>
+    <string name="settings_ai_key_label">DeepSeek API key</string>
+    <string name="settings_ai_key_hint">sk-…</string>
+    <string name="settings_ai_key_saved">Saved</string>
+    <string name="settings_ai_save">Save</string>
+    <string name="settings_ai_clear">Clear</string>
+    <string name="settings_ai_show_key">Show API key</string>
+    <string name="settings_ai_hide_key">Hide API key</string>
+    <string name="settings_ai_model_label">Model</string>
+    <string name="settings_ai_model_hint">deepseek-chat</string>
+    <string name="settings_ai_model_support">e.g. deepseek-chat or deepseek-reasoner</string>
+</resources>

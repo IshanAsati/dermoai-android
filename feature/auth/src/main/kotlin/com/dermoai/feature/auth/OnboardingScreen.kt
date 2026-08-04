@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,27 +71,27 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
-    var page by remember { mutableStateOf(0) }
-    var language by remember { mutableStateOf("en") }
-    var displayName by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("") }
-    var skinType by remember { mutableStateOf("") }
-    var skinTone by remember { mutableStateOf("") }
-    var skinConcerns by remember { mutableStateOf("") }
-    var allergies by remember { mutableStateOf("") }
-    var medications by remember { mutableStateOf("") }
-    var sunExposure by remember { mutableStateOf("") }
-    var waterIntake by remember { mutableStateOf("") }
-    var sleepHours by remember { mutableStateOf("") }
-    var stressLevel by remember { mutableStateOf("") }
-    var diet by remember { mutableStateOf("") }
-    var smoking by remember { mutableStateOf(false) }
-    var alcohol by remember { mutableStateOf(false) }
-    var exercise by remember { mutableStateOf("") }
-    var skinCareRoutine by remember { mutableStateOf("") }
+    var page by rememberSaveable { mutableStateOf(0) }
+    var language by rememberSaveable { mutableStateOf("en") }
+    var displayName by rememberSaveable { mutableStateOf("") }
+    var age by rememberSaveable { mutableStateOf("") }
+    var gender by rememberSaveable { mutableStateOf("") }
+    var skinType by rememberSaveable { mutableStateOf("") }
+    var skinTone by rememberSaveable { mutableStateOf("") }
+    var skinConcerns by rememberSaveable { mutableStateOf("") }
+    var allergies by rememberSaveable { mutableStateOf("") }
+    var medications by rememberSaveable { mutableStateOf("") }
+    var sunExposure by rememberSaveable { mutableStateOf("") }
+    var waterIntake by rememberSaveable { mutableStateOf("") }
+    var sleepHours by rememberSaveable { mutableStateOf("") }
+    var stressLevel by rememberSaveable { mutableStateOf("") }
+    var diet by rememberSaveable { mutableStateOf("") }
+    var smoking by rememberSaveable { mutableStateOf(false) }
+    var alcohol by rememberSaveable { mutableStateOf(false) }
+    var exercise by rememberSaveable { mutableStateOf("") }
+    var skinCareRoutine by rememberSaveable { mutableStateOf("") }
 
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { viewModel.complete() }) { Text("Skip all") }
             Text("Step ${page + 1} / 4", style = MaterialTheme.typography.labelMedium, color = DermoColors.Slate)

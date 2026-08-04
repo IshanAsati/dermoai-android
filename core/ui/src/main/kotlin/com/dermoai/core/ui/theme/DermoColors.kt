@@ -56,7 +56,6 @@ object DermoColors {
 
     // Legacy aliases — keep so feature code compiles without changes
     val TealAccent   get() = Teal
-    val VioletAccent = Color(0xFF0D9488) // was purple, now teal
     val HealthGreen  get() = Sage
     val WarmAmber    get() = Amber
     val SoftCoral    get() = Coral
@@ -68,7 +67,7 @@ object DermoColors {
     val GlassOverlayLight get() = GlassLight
     val GlassOverlayDark  get() = GlassDark
     val headingGradientStart get() = Teal
-    val headingGradientEnd   get() = VioletAccent
+    val headingGradientEnd   get() = Teal
 
     /**
      * Map an accent to its darker text variant for small labels on light
@@ -76,7 +75,7 @@ object DermoColors {
      * sizes; the *Text variants clear 4.5:1 on both Canvas and CardWhite.
      */
     fun textOnLight(accent: Color): Color = when (accent) {
-        Teal, TealAccent, VioletAccent -> TealText
+        Teal, TealAccent -> TealText
         Coral, SoftCoral -> CoralText
         Sage, HealthGreen -> SageText
         Amber, WarmAmber -> AmberText

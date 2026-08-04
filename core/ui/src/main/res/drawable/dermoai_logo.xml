@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DermoAI logo mark: a dermoscope / scan-reticle in the "Pine & Cream" identity.
+  Designed on the 108dp adaptive-icon canvas, every element concentric at
+  (54,54) so the mark stays perfectly centered; outermost stroke stays within
+  the round-mask safe zone (radius ≤ 33dp: outer ring reaches 54 ± 22.25).
+  Used for the launcher icon (app) and the splash logo (feature/auth).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer scan ring (warm cream) -->
+    <path
+        android:pathData="M54,34 a20,20 0 1,1 0,40 a20,20 0 1,1 0,-40"
+        android:strokeColor="#F4EFE7"
+        android:strokeWidth="4.5" />
+
+    <!-- Inner guide ring (pale pine) -->
+    <path
+        android:pathData="M54,41.5 a12.5,12.5 0 1,1 0,25 a12.5,12.5 0 1,1 0,-25"
+        android:strokeColor="#D9EDE4"
+        android:strokeWidth="1.75" />
+
+    <!-- Centre dot (warm cream) -->
+    <path
+        android:fillColor="#F4EFE7"
+        android:pathData="M54,47.5 a6.5,6.5 0 1,1 0,13 a6.5,6.5 0 1,1 0,-13 z" />
+</vector>

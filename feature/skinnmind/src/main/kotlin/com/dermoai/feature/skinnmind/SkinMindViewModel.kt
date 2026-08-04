@@ -43,6 +43,10 @@ class SkinMindViewModel @Inject constructor(
     private val _recording = MutableStateFlow(false)
     val recording: StateFlow<Boolean> = _recording.asStateFlow()
 
+    /** Set when the mic permission is missing or the recorder fails to start. */
+    private val _recordingError = MutableStateFlow(false)
+    val recordingError: StateFlow<Boolean> = _recordingError.asStateFlow()
+
     val formState = MutableStateFlow(CheckInFormState())
 
     private val _submitted = MutableStateFlow(false)
@@ -57,7 +61,10 @@ class SkinMindViewModel @Inject constructor(
     fun refresh(userId: String) {
         viewModelScope.launch {
             val today = dateFormat.format(Date())
-            _todayCompleted.value = checkInDao.getByDate(userId, today) != null
+            val completedToday = checkInDao.getByDate(userId, today) != null
+            _todayCompleted.value = completedToday
+            // A new day (or cleared data) must clear the celebration so the form shows again.
+            if (!completedToday) _submitted.value = false
             val all = checkInDao.observeByUserId(userId).first()
             _streak.value = computeStreak(all)
         }
@@ -94,7 +101,7 @@ class SkinMindViewModel @Inject constructor(
             _todayCompleted.value = true
             _submitted.value = true
             val all = checkInDao.observeByUserId(userId).first()
-            _streak.value = computeStreak(all) + 1
+            _streak.value = computeStreak(all)
         }
     }
 
@@ -103,21 +110,30 @@ class SkinMindViewModel @Inject constructor(
     }
 
     private fun startRecording(outputDir: File) {
-        val file = File(outputDir, "voicenote_${System.currentTimeMillis()}.mp3")
-        mediaRecorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            MediaRecorder(android.app.Application())
-        } else {
-            @Suppress("DEPRECATION") MediaRecorder()
+        _recordingError.value = false
+        try {
+            val file = File(outputDir, "voicenote_${System.currentTimeMillis()}.mp3")
+            mediaRecorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                MediaRecorder(android.app.Application())
+            } else {
+                @Suppress("DEPRECATION") MediaRecorder()
+            }
+            mediaRecorder?.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(file.absolutePath)
+                prepare()
+                start()
+            }
+            _recording.value = true
+        } catch (e: Exception) {
+            // Missing RECORD_AUDIO permission or a mic failure — never crash.
+            runCatching { mediaRecorder?.release() }
+            mediaRecorder = null
+            _recording.value = false
+            _recordingError.value = true
         }
-        mediaRecorder?.apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setOutputFile(file.absolutePath)
-            prepare()
-            start()
-        }
-        _recording.value = true
     }
 
     private fun stopRecording() {
@@ -136,19 +152,19 @@ class SkinMindViewModel @Inject constructor(
         if (dates.isEmpty()) return 0
         val cal = Calendar.getInstance()
         val today = dateFormat.format(cal.time)
-        if (dates.first() != today && dates.first() != yesterday(cal)) return 0
-        var streak = if (dates.first() == today) 1 else 0
-        cal.add(Calendar.DAY_OF_YEAR, -1)
-        for (i in 1 until dates.size) {
-            if (dateFormat.format(cal.time) == dates.getOrNull(i)) streak++
-            else break
+        val anchor = dates.first()
+        // A streak counts as long as the most recent check-in is today or yesterday.
+        if (anchor != today) {
             cal.add(Calendar.DAY_OF_YEAR, -1)
+            if (anchor != dateFormat.format(cal.time)) return 0
+        }
+        // The anchor day itself always counts (fixes yesterday-anchored streaks showing N-1).
+        var streak = 1
+        cal.time = java.util.Date(dateFormat.parse(anchor)!!.time)
+        for (i in 1 until dates.size) {
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+            if (dateFormat.format(cal.time) == dates[i]) streak++ else break
         }
         return streak
-    }
-
-    private fun yesterday(cal: Calendar): String {
-        cal.add(Calendar.DAY_OF_YEAR, -1)
-        return dateFormat.format(cal.time)
     }
 }

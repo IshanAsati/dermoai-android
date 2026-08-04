@@ -9,4 +9,35 @@
     <string name="faq_error">Could not load the FAQ content.</string>
     <string name="faq_retry">Retry</string>
     <string name="faq_source_note">Curated educational content for this app — not a substitute for medical advice.</string>
+
+    <!-- FAQ / AI assistant toggle -->
+    <string name="faq_tab_browse">FAQ</string>
+    <string name="faq_tab_chat">AI assistant</string>
+
+    <!-- AI assistant (DeepSeek) -->
+    <string name="chat_welcome_title">Ask DermoAI</string>
+    <string name="chat_welcome_body">Ask anything about skin health or how to use DermoAI — scans, results, treatments, privacy, and more. Powered by DeepSeek with your own API key.</string>
+    <string name="chat_input_hint">Ask a question…</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_clear">Clear</string>
+    <string name="chat_typing">DermoAI is typing…</string>
+    <string name="chat_disclaimer">AI answers are informational and not medical advice. See a dermatologist for a diagnosis.</string>
+    <string name="chat_no_key_title">Add a DeepSeek API key</string>
+    <string name="chat_no_key_body">The assistant uses your own DeepSeek API key. Add one in Settings — it is stored only on this device.</string>
+    <string name="chat_open_settings">Open Settings</string>
+    <string name="chat_retry">Try again</string>
+    <string name="chat_suggestion_acne">What causes acne?</string>
+    <string name="chat_suggestion_sunscreen">How should I pick a sunscreen?</string>
+    <string name="chat_suggestion_mole">When should I worry about a mole?</string>
+    <string name="chat_suggestion_dermatologist">When to see a dermatologist?</string>
+    <string name="chat_suggestion_scan_results">How do I read my scan results?</string>
+    <string name="chat_suggestion_privacy">Is my scan data private?</string>
+    <string name="chat_error_missing_key">No API key yet — add one in Settings first.</string>
+    <string name="chat_error_invalid_key">The DeepSeek API key was rejected. Check it in Settings.</string>
+    <string name="chat_error_insufficient_balance">Your DeepSeek account has no balance. Top it up on the DeepSeek platform.</string>
+    <string name="chat_error_rate_limited">Too many requests — please wait a moment and try again.</string>
+    <string name="chat_error_server">DeepSeek is having trouble right now. Please try again later.</string>
+    <string name="chat_error_network">Could not reach DeepSeek. Check your connection and try again.</string>
+    <string name="chat_error_empty">DeepSeek returned an empty reply. Please try again.</string>
+    <string name="chat_error_unknown">Something went wrong. Please try again.</string>
 </resources>

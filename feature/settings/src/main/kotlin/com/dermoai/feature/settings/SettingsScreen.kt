@@ -24,6 +24,9 @@ import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,6 +48,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -71,6 +77,8 @@ private data class SettingsPrefs(
     val language: String,
     val darkMode: Boolean?,
     val dynamicColor: Boolean,
+    val deepSeekApiKey: String?,
+    val deepSeekModel: String,
 )
 
 @HiltViewModel
@@ -95,15 +103,26 @@ class SettingsViewModel @Inject constructor(
     private val _profile = MutableStateFlow<UserProfileDetailsEntity?>(null)
     val profile: StateFlow<UserProfileDetailsEntity?> = _profile.asStateFlow()
 
+    private val _deepSeekApiKey = MutableStateFlow<String?>(null)
+    val deepSeekApiKey: StateFlow<String?> = _deepSeekApiKey.asStateFlow()
+
+    private val _deepSeekModel = MutableStateFlow(UserPreferencesDataStore.DEFAULT_DEEPSEEK_MODEL)
+    val deepSeekModel: StateFlow<String> = _deepSeekModel.asStateFlow()
+
     init {
         viewModelScope.launch {
-            combine(prefs.envAlertsEnabled, prefs.languageCode, prefs.darkModeEnabled, prefs.dynamicColorEnabled) { e, l, d, dc ->
-                SettingsPrefs(e, l, d, dc)
-            }.collect { (e, l, d, dc) ->
-                _envAlertsEnabled.value = e
-                _language.value = l
-                _darkMode.value = d
-                _dynamicColor.value = dc
+            val base = combine(
+                prefs.envAlertsEnabled, prefs.languageCode, prefs.darkModeEnabled, prefs.dynamicColorEnabled,
+            ) { e, l, d, dc -> SettingsPrefs(e, l, d, dc, null, "") }
+            combine(base, prefs.deepSeekApiKey, prefs.deepSeekModel) { b, key, model ->
+                b.copy(deepSeekApiKey = key, deepSeekModel = model)
+            }.collect { prefsState ->
+                _envAlertsEnabled.value = prefsState.envAlerts
+                _language.value = prefsState.language
+                _darkMode.value = prefsState.darkMode
+                _dynamicColor.value = prefsState.dynamicColor
+                _deepSeekApiKey.value = prefsState.deepSeekApiKey
+                _deepSeekModel.value = prefsState.deepSeekModel
             }
         }
         viewModelScope.launch {
@@ -121,6 +140,30 @@ class SettingsViewModel @Inject constructor(
     } }
     fun toggleDarkMode() { viewModelScope.launch { val n = _darkMode.value != true; _darkMode.value = n; prefs.setDarkMode(n) } }
     fun toggleDynamicColor() { viewModelScope.launch { val n = !_dynamicColor.value; _dynamicColor.value = n; prefs.setDynamicColor(n) } }
+
+    /** Saves the user's DeepSeek API key for the AI assistant; blank clears it. */
+    fun saveDeepSeekApiKey(key: String) {
+        viewModelScope.launch {
+            val trimmed = key.trim().ifBlank { null }
+            _deepSeekApiKey.value = trimmed
+            prefs.setDeepSeekApiKey(trimmed)
+        }
+    }
+
+    fun clearDeepSeekApiKey() {
+        viewModelScope.launch {
+            _deepSeekApiKey.value = null
+            prefs.setDeepSeekApiKey(null)
+        }
+    }
+
+    fun saveDeepSeekModel(model: String) {
+        viewModelScope.launch {
+            val trimmed = model.trim().ifBlank { UserPreferencesDataStore.DEFAULT_DEEPSEEK_MODEL }
+            _deepSeekModel.value = trimmed
+            prefs.setDeepSeekModel(trimmed)
+        }
+    }
 
     /** Persists the editable demographics (age, gender, skin type/tone, sun exposure). */
     fun saveProfile(age: String, gender: String, skinType: String, skinTone: String, sunExposure: String) {
@@ -167,6 +210,8 @@ fun SettingsScreen(
     val darkMode by viewModel.darkMode.collectAsState()
     val dynamicColor by viewModel.dynamicColor.collectAsState()
     val profile by viewModel.profile.collectAsState()
+    val deepSeekApiKey by viewModel.deepSeekApiKey.collectAsState()
+    val deepSeekModel by viewModel.deepSeekModel.collectAsState()
     var signOutDialog by remember { mutableStateOf(false) }
     var langExpanded by remember { mutableStateOf(false) }
     var profileDialog by remember { mutableStateOf(false) }
@@ -198,6 +243,13 @@ fun SettingsScreen(
             SettingsRow(Icons.Outlined.Brightness6, "Dark theme") { Switch(checked = darkMode == true, onCheckedChange = { viewModel.toggleDarkMode() }, modifier = Modifier.semantics { contentDescription = "Dark theme" }) }
             SettingsRow(Icons.Outlined.Notifications, "Environmental alerts") { Switch(checked = envAlerts, onCheckedChange = { viewModel.toggleEnvAlerts() }, modifier = Modifier.semantics { contentDescription = "Environmental alerts" }) }
             SettingsRow(Icons.Outlined.Palette, "Dynamic color (Android 12+)") { Switch(checked = dynamicColor, onCheckedChange = { viewModel.toggleDynamicColor() }, modifier = Modifier.semantics { contentDescription = "Dynamic color" }) }
+            AiAssistantCard(
+                savedKey = deepSeekApiKey,
+                savedModel = deepSeekModel,
+                onSaveKey = { viewModel.saveDeepSeekApiKey(it) },
+                onClearKey = { viewModel.clearDeepSeekApiKey() },
+                onSaveModel = { viewModel.saveDeepSeekModel(it) },
+            )
             SettingsRow(Icons.Outlined.Person, "Skin profile") {
                 Column(horizontalAlignment = Alignment.End) {
                     val summary = buildString {
@@ -238,6 +290,80 @@ fun SettingsScreen(
             Spacer(Modifier.width(16.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             trailing()
+        }
+    }
+}
+
+/**
+ * DeepSeek AI-assistant configuration: user-supplied API key + model name.
+ * Both are persisted on-device only; the key is never logged.
+ */
+@Composable
+private fun AiAssistantCard(
+    savedKey: String?,
+    savedModel: String,
+    onSaveKey: (String) -> Unit,
+    onClearKey: () -> Unit,
+    onSaveModel: (String) -> Unit,
+) {
+    var keyDraft by remember(savedKey) { mutableStateOf(savedKey ?: "") }
+    var keyVisible by remember { mutableStateOf(false) }
+    var keySaved by remember { mutableStateOf(false) }
+    var modelDraft by remember(savedModel) { mutableStateOf(savedModel) }
+    var modelSaved by remember { mutableStateOf(false) }
+
+    NeuSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.SmartToy, null, Modifier.size(24.dp), tint = DermoColors.TealAccent)
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(stringResource(R.string.settings_ai_title), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.settings_ai_subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            OutlinedTextField(
+                value = keyDraft,
+                onValueChange = { keyDraft = it; keySaved = false },
+                label = { Text(stringResource(R.string.settings_ai_key_label)) },
+                placeholder = { Text(stringResource(R.string.settings_ai_key_hint)) },
+                singleLine = true,
+                visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { keyVisible = !keyVisible }) {
+                        Icon(
+                            imageVector = if (keyVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = stringResource(if (keyVisible) R.string.settings_ai_hide_key else R.string.settings_ai_show_key),
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { onSaveKey(keyDraft); keySaved = true }) { Text(stringResource(R.string.settings_ai_save)) }
+                if (savedKey != null) {
+                    TextButton(onClick = { onClearKey(); keyDraft = ""; keySaved = false }) { Text(stringResource(R.string.settings_ai_clear), color = DermoColors.SoftCoral) }
+                }
+                if (keySaved) {
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(R.string.settings_ai_key_saved), style = MaterialTheme.typography.labelMedium, color = DermoColors.SageText)
+                }
+            }
+            OutlinedTextField(
+                value = modelDraft,
+                onValueChange = { modelDraft = it; modelSaved = false },
+                label = { Text(stringResource(R.string.settings_ai_model_label)) },
+                placeholder = { Text(stringResource(R.string.settings_ai_model_hint)) },
+                supportingText = { Text(stringResource(R.string.settings_ai_model_support)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { onSaveModel(modelDraft); modelSaved = true }) { Text(stringResource(R.string.settings_ai_save)) }
+                if (modelSaved) {
+                    Text(stringResource(R.string.settings_ai_key_saved), style = MaterialTheme.typography.labelMedium, color = DermoColors.SageText)
+                }
+            }
         }
     }
 }

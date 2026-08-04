@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,20 +61,24 @@ private val CATEGORY_LABELS = mapOf(
 )
 
 /**
- * Searchable FAQ: curated, bundled, offline content about skin conditions,
- * prevention, and how the app works.
+ * Searchable FAQ (browse) + AI assistant (chat) in one screen.
+ * The FAQ is curated, bundled, offline content about skin conditions,
+ * prevention, and how the app works; the assistant chats via DeepSeek
+ * using the user's own API key (configured in Settings).
  */
 @Composable
 fun FaqScreen(
     modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {},
     viewModel: FaqViewModel = hiltViewModel(),
 ) {
     val entries by viewModel.entries.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    var query by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf(CATEGORY_ALL) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var category by rememberSaveable { mutableStateOf(CATEGORY_ALL) }
+    var tab by rememberSaveable { mutableStateOf(FaqTab.BROWSE) }
 
     Column(modifier = modifier.fillMaxSize()) {
         GradientHeader(
@@ -82,74 +87,121 @@ fun FaqScreen(
         )
         MedicalDisclaimerBar()
 
-        Column(Modifier.weight(1f)) {
-            // Search field
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text(stringResource(R.string.faq_search_hint)) },
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+        // FAQ / AI assistant toggle
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CategoryChip(
+                label = stringResource(R.string.faq_tab_browse),
+                selected = tab == FaqTab.BROWSE,
+                onClick = { tab = FaqTab.BROWSE },
             )
+            CategoryChip(
+                label = stringResource(R.string.faq_tab_chat),
+                selected = tab == FaqTab.CHAT,
+                onClick = { tab = FaqTab.CHAT },
+            )
+        }
 
-            // Category chips
-            val categories = remember(entries) {
-                listOf(CATEGORY_ALL) + entries.map { it.category }.distinct().sorted()
+        when (tab) {
+            FaqTab.CHAT -> ChatSection(Modifier.weight(1f), onOpenSettings = onOpenSettings)
+            FaqTab.BROWSE -> BrowseContent(
+                modifier = Modifier.weight(1f),
+                query = query,
+                onQueryChange = { query = it },
+                category = category,
+                onCategoryChange = { category = it },
+                entries = entries,
+                loading = loading,
+                error = error,
+                viewModel = viewModel,
+            )
+        }
+    }
+}
+
+private enum class FaqTab { BROWSE, CHAT }
+
+@Composable
+private fun BrowseContent(
+    modifier: Modifier = Modifier,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    category: String,
+    onCategoryChange: (String) -> Unit,
+    entries: List<FaqEntry>,
+    loading: Boolean,
+    error: Boolean,
+    viewModel: FaqViewModel,
+) {
+    Column(modifier) {
+        // Search field
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            placeholder = { Text(stringResource(R.string.faq_search_hint)) },
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+        )
+
+        // Category chips
+        val categories = remember(entries) {
+            listOf(CATEGORY_ALL) + entries.map { it.category }.distinct().sorted()
+        }
+        LazyRow(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(categories) { cat ->
+                CategoryChip(
+                    label = if (cat == CATEGORY_ALL) stringResource(R.string.faq_all) else CATEGORY_LABELS[cat] ?: cat,
+                    selected = cat == category,
+                    onClick = { onCategoryChange(cat) },
+                )
             }
-            LazyRow(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(categories) { cat ->
-                    CategoryChip(
-                        label = if (cat == CATEGORY_ALL) stringResource(R.string.faq_all) else CATEGORY_LABELS[cat] ?: cat,
-                        selected = cat == category,
-                        onClick = { category = cat },
-                    )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        when {
+            loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.faq_error), style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(12.dp))
+                    TextButton(onClick = { viewModel.load() }) { Text(stringResource(R.string.faq_retry)) }
                 }
             }
-
-            Spacer(Modifier.height(8.dp))
-
-            when {
-                loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.faq_error), style = MaterialTheme.typography.bodyLarge)
-                        Spacer(Modifier.height(12.dp))
-                        TextButton(onClick = { viewModel.load() }) { Text(stringResource(R.string.faq_retry)) }
-                    }
+            else -> {
+                val filtered = remember(entries, query, category) {
+                    val byCategory = if (category == CATEGORY_ALL) entries else entries.filter { it.category == category }
+                    viewModel.search(byCategory, query)
                 }
-                else -> {
-                    val filtered = remember(entries, query, category) {
-                        val byCategory = if (category == CATEGORY_ALL) entries else entries.filter { it.category == category }
-                        viewModel.search(byCategory, query)
+                if (filtered.isEmpty()) {
+                    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(stringResource(R.string.faq_empty_title), style = MaterialTheme.typography.titleMedium)
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                stringResource(R.string.faq_empty_body),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
-                    if (filtered.isEmpty()) {
-                        Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(stringResource(R.string.faq_empty_title), style = MaterialTheme.typography.titleMedium)
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    stringResource(R.string.faq_empty_body),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
+                } else {
+                    LazyColumn(
+                        Modifier.fillMaxSize().padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(filtered, key = { it.id }) { entry ->
+                            FaqCard(entry)
                         }
-                    } else {
-                        LazyColumn(
-                            Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            items(filtered, key = { it.id }) { entry ->
-                                FaqCard(entry)
-                            }
-                            item { Spacer(Modifier.height(16.dp)) }
-                        }
+                        item { Spacer(Modifier.height(16.dp)) }
                     }
                 }
             }

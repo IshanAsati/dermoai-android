@@ -60,6 +60,7 @@ class HomeViewModel @Inject constructor(
     val treatmentRoutines: StateFlow<List<TreatmentRoutineEntity>> = _treatmentRoutines.asStateFlow()
 
     private var refreshJob: Job? = null
+    private var routineJob: Job? = null
 
     fun refresh(userId: String = "") {
         // Cancel any in-flight refresh so concurrent fetches can't race on the
@@ -74,7 +75,10 @@ class HomeViewModel @Inject constructor(
             _insights.value = insightsEngine.generateInsights(userId)
 
             if (userId.isNotEmpty()) {
-                viewModelScope.launch {
+                // Rebind the (infinite) routine flow on refresh instead of leaking a
+                // new collector on every visit — cancel the previous one first.
+                routineJob?.cancel()
+                routineJob = viewModelScope.launch {
                     routineDao.observeByUserId(userId).collect { _treatmentRoutines.value = it }
                 }
             }
@@ -115,22 +119,22 @@ class HomeViewModel @Inject constructor(
     private fun computeStreak(checkIns: List<com.dermoai.core.database.entity.DailyCheckInEntity>): Int {
         val dates = checkIns.map { it.dateKey }.sortedDescending().distinct()
         if (dates.isEmpty()) return 0
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val cal = java.util.Calendar.getInstance()
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
-        if (dates.first() != today && dates.first() != yesterday(cal)) return 0
-        var streak = if (dates.first() == today) 1 else 0
-        cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
-        for (i in 1 until dates.size) {
-            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            if (sdf.format(cal.time) == dates.getOrNull(i)) streak++
-            else break
+        val today = sdf.format(cal.time)
+        val anchor = dates.first()
+        // A streak counts as long as the most recent check-in is today or yesterday.
+        if (anchor != today) {
             cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+            if (anchor != sdf.format(cal.time)) return 0
+        }
+        // The anchor day itself always counts (fixes yesterday-anchored streaks showing N-1).
+        var streak = 1
+        cal.time = sdf.parse(anchor)!!
+        for (i in 1 until dates.size) {
+            cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+            if (sdf.format(cal.time) == dates[i]) streak++ else break
         }
         return streak
-    }
-
-    private fun yesterday(cal: java.util.Calendar): String {
-        cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
-        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
     }
 }

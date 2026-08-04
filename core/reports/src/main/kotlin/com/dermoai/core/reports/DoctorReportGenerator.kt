@@ -45,9 +45,10 @@ class DoctorReportGenerator @Inject constructor(
         runCatching {
             val document = PdfDocument()
             val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create()
-            val page = document.startPage(pageInfo)
-            val canvas: Canvas = page.canvas
+            var page = document.startPage(pageInfo)
+            var canvas: Canvas = page.canvas
             var y = 72f
+            var pageNumber = 1
 
             val titlePaint = Paint().apply { textSize = 24f; typeface = Typeface.DEFAULT_BOLD; color = Color.parseColor("#14B8A6") }
             val headingPaint = Paint().apply { textSize = 16f; typeface = Typeface.DEFAULT_BOLD; color = Color.DKGRAY }
@@ -73,11 +74,16 @@ class DoctorReportGenerator @Inject constructor(
             val sdf = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
             for ((idx, entry) in input.scans.withIndex()) {
                 if (y > PAGE_HEIGHT - 80f) {
-                    drawPageNumber(canvas, idx + 1, input.scans.size, disclaimPaint)
+                    drawPageNumber(canvas, pageNumber, pageNumber, disclaimPaint)
                     document.finishPage(page)
-                    val newPage = document.startPage(pageInfo)
-                    val newCanvas = newPage.canvas
-                    newCanvas.drawText("Educational only — not a medical diagnosis", PAGE_WIDTH / 2f, 12f, disclaimPaint)
+                    // Start a fresh page and CONTINUE drawing on it — previously the
+                    // old canvas/y were reused, so content was drawn onto an already
+                    // finished page (lost content / corrupt multi-page output).
+                    page = document.startPage(pageInfo)
+                    canvas = page.canvas
+                    y = PAGE_TOP_MARGIN
+                    pageNumber++
+                    canvas.drawText("Educational only — not a medical diagnosis", PAGE_WIDTH / 2f, 12f, disclaimPaint)
                 }
 
                 // Scan entry
@@ -139,7 +145,7 @@ class DoctorReportGenerator @Inject constructor(
             canvas.drawText("Educational only — not a medical diagnosis", PAGE_WIDTH / 2f, y, disclaimPaint)
             y += 14f
             canvas.drawText("DermoAI is an awareness tool and does not replace a dermatologist.", PAGE_WIDTH / 2f, y, disclaimPaint)
-            drawPageNumber(canvas, 1, 1, disclaimPaint)
+            drawPageNumber(canvas, pageNumber, pageNumber, disclaimPaint)
 
             document.finishPage(page)
             val output = File(context.filesDir, "reports").apply { mkdirs() }
@@ -160,5 +166,6 @@ class DoctorReportGenerator @Inject constructor(
     companion object {
         private const val PAGE_WIDTH = 595
         private const val PAGE_HEIGHT = 842
+        private const val PAGE_TOP_MARGIN = 48f
     }
 }

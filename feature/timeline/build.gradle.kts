@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:ui"))
     implementation(project(":core:database"))
+    implementation(libs.androidx.room.ktx)
     implementation(project(":core:camera"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

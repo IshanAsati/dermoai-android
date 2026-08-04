@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -44,8 +45,6 @@ class TreatmentViewModel @Inject constructor(
 
     val newRoutineName = MutableStateFlow("")
 
-    private val todayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-
     fun loadRoutines(userId: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -60,9 +59,16 @@ class TreatmentViewModel @Inject constructor(
         _selectedRoutineId.value = routineId
         if (routineId != null) {
             viewModelScope.launch {
-                stepDao.observeByRoutineId(routineId).collect { _steps.value = it }
-                completionDao.observeByRoutineAndDate(routineId, todayKey).collect { completions ->
-                    _completedStepIds.value = completions.map { it.stepId }.toSet()
+                // Room flows never complete — combine instead of chaining collects,
+                // otherwise the completion flow below would be unreachable dead code.
+                combine(
+                    stepDao.observeByRoutineId(routineId),
+                    completionDao.observeByRoutineAndDate(routineId, todayKey()),
+                ) { steps, completions ->
+                    steps to completions.map { it.stepId }.toSet()
+                }.collect { (steps, completedIds) ->
+                    _steps.value = steps
+                    _completedStepIds.value = completedIds
                 }
             }
         }
@@ -126,15 +132,19 @@ class TreatmentViewModel @Inject constructor(
 
     fun toggleStep(stepId: String) {
         viewModelScope.launch {
-            val existing = completionDao.getByStepAndDate(stepId, todayKey)
+            val key = todayKey()
+            val existing = completionDao.getByStepAndDate(stepId, key)
             if (existing != null) {
-                completionDao.deleteByStepAndDate(stepId, todayKey)
+                completionDao.deleteByStepAndDate(stepId, key)
             } else {
                 val routineId = _selectedRoutineId.value ?: return@launch
-                completionDao.upsert(StepCompletionEntity("comp_${UUID.randomUUID()}", stepId, routineId, System.currentTimeMillis(), todayKey))
+                completionDao.upsert(StepCompletionEntity("comp_${UUID.randomUUID()}", stepId, routineId, System.currentTimeMillis(), key))
             }
         }
     }
+
+    /** Fresh date key per call so a midnight rollover mid-session still tracks the new day. */
+    private fun todayKey(): String = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
     fun deleteRoutine(routineId: String) {
         viewModelScope.launch {

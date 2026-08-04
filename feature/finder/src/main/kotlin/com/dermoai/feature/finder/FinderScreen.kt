@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -99,8 +100,8 @@ fun FinderScreen(
             is FinderUiState.NoPermission -> PermissionPrompt(
                 onRequest = { permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
             )
-            is FinderUiState.Locating -> CenterMessage(stringResource(R.string.finder_locating))
-            is FinderUiState.Loading -> CenterMessage(stringResource(R.string.finder_searching))
+            is FinderUiState.Locating -> CenterMessage(stringResource(R.string.finder_locating), loading = true)
+            is FinderUiState.Loading -> CenterMessage(stringResource(R.string.finder_searching), loading = true)
             is FinderUiState.NoLocation -> CenterMessage(
                 stringResource(R.string.finder_no_location),
                 retry = { viewModel.locateAndSearch() },
@@ -123,12 +124,19 @@ fun FinderScreen(
     }
 }
 
+/**
+ * Centered status message. Shows a spinner only while work is in flight
+ * ([loading]); terminal states (no location / empty / error) show the message
+ * plus a retry button, without a spinner.
+ */
 @Composable
-private fun CenterMessage(message: String, retry: (() -> Unit)? = null) {
+private fun CenterMessage(message: String, retry: (() -> Unit)? = null, loading: Boolean = false) {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(16.dp))
+            if (loading) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(16.dp))
+            }
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
@@ -136,7 +144,11 @@ private fun CenterMessage(message: String, retry: (() -> Unit)? = null) {
             )
             if (retry != null) {
                 Spacer(Modifier.height(16.dp))
-                NeuButton(onClick = retry, containerColor = DermoColors.TealAccent) { Text(stringResource(R.string.finder_retry)) }
+                NeuButton(
+                    onClick = retry,
+                    containerColor = DermoColors.Teal,
+                    contentColor = Color.White,
+                ) { Text(stringResource(R.string.finder_retry)) }
             }
         }
     }
@@ -155,7 +167,7 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(20.dp))
-            NeuButton(onClick = onRequest, containerColor = DermoColors.TealAccent) {
+            NeuButton(onClick = onRequest, containerColor = DermoColors.Teal, contentColor = Color.White) {
                 Text(stringResource(R.string.finder_permission_button))
             }
         }
@@ -330,7 +342,8 @@ private fun ClinicDetailCard(clinic: Clinic, onClose: () -> Unit, modifier: Modi
                             val digits = clinic.phone.filter { it.isDigit() || it in "+()- " }
                             context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$digits")))
                         },
-                        containerColor = DermoColors.TealAccent,
+                        containerColor = DermoColors.Teal,
+                        contentColor = Color.White,
                     ) {
                         Icon(Icons.Outlined.Phone, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
@@ -343,7 +356,8 @@ private fun ClinicDetailCard(clinic: Clinic, onClose: () -> Unit, modifier: Modi
                         val uri = "geo:0,0?q=${clinic.lat},${clinic.lon}($label)"
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
                     },
-                    containerColor = DermoColors.TealAccent,
+                    containerColor = DermoColors.Teal,
+                    contentColor = Color.White,
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))

@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -69,32 +70,38 @@ class DermatologistRepository @Inject constructor() {
             query = dermQuery(lat, lon),
             lat = lat,
             lon = lon,
-        )
+        ) ?: throw IOException("Dermatologist search failed")
         if (dermatologists.isNotEmpty()) {
             NearbyResult(clinics = dermatologists, isBroadFallback = false)
         } else {
-            NearbyResult(
-                clinics = queryOverpass(
-                    query = broadQuery(lat, lon),
-                    lat = lat,
-                    lon = lon,
-                ),
-                isBroadFallback = true,
-            )
+            val broad = queryOverpass(
+                query = broadQuery(lat, lon),
+                lat = lat,
+                lon = lon,
+            ) ?: throw IOException("Clinic search failed")
+            NearbyResult(clinics = broad, isBroadFallback = true)
         }
     }
 
-    private fun queryOverpass(query: String, lat: Double, lon: Double): List<Clinic> {
+    /**
+     * Runs an Overpass query. Returns the matched clinics, an empty list when
+     * the API answered but nothing matched, or `null` when the request itself
+     * failed (HTTP error / unparseable body) — so callers can distinguish
+     * "no results" from "couldn't search" instead of showing a misleading
+     * empty/fallback result. Network errors throw directly.
+     */
+    private fun queryOverpass(query: String, lat: Double, lon: Double): List<Clinic>? {
         val request = Request.Builder()
             .url(OVERPASS_ENDPOINT)
             .header("User-Agent", USER_AGENT)
             .post(okhttp3.RequestBody.create(null, query))
             .build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return emptyList()
-            val body = response.body?.string() ?: return emptyList()
+        val response = client.newCall(request).execute()
+        response.use {
+            if (!response.isSuccessful) return null
+            val body = response.body?.string() ?: return null
             val parsed = runCatching { json.decodeFromString<OverpassResponse>(body) }.getOrNull()
-                ?: return emptyList()
+                ?: return null
             return parsed.elements.mapNotNull { element ->
                 val pointLat = element.lat ?: element.center?.lat ?: return@mapNotNull null
                 val pointLon = element.lon ?: element.center?.lon ?: return@mapNotNull null
@@ -133,8 +140,12 @@ class DermatologistRepository @Inject constructor() {
 
         private fun dermQuery(lat: Double, lon: Double) = buildString {
             append("[out:json][timeout:25];")
-            append("(node[\"healthcare:specialty\"=\"dermatology\"](around:$RADIUS_DERM,$lat,$lon);")
+            // OSM data uses "healthcare:speciality" (British spelling) — also match the
+            // common "healthcare:specialty" variant and the "healthcare=dermatologist" tag.
+            append("(node[\"healthcare:speciality\"=\"dermatology\"](around:$RADIUS_DERM,$lat,$lon);")
+            append("node[\"healthcare:specialty\"=\"dermatology\"](around:$RADIUS_DERM,$lat,$lon);")
             append("node[\"healthcare\"=\"dermatologist\"](around:$RADIUS_DERM,$lat,$lon);")
+            append("way[\"healthcare:speciality\"=\"dermatology\"](around:$RADIUS_DERM,$lat,$lon);")
             append("way[\"healthcare:specialty\"=\"dermatology\"](around:$RADIUS_DERM,$lat,$lon);")
             append("way[\"healthcare\"=\"dermatologist\"](around:$RADIUS_DERM,$lat,$lon););")
             append("out center tags;")

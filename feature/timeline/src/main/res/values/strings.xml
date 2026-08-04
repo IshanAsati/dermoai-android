@@ -14,6 +14,7 @@
     <string name="timeline_play">Play</string>
     <string name="timeline_record_stop">Recording… tap to stop</string>
     <string name="timeline_record_add">Add voice note</string>
+    <string name="timeline_record_failed">Could not start recording — microphone permission required.</string>
     <string name="timeline_disclaimer">This app is an educational and awareness tool and does not replace a dermatologist.</string>
     <string name="timeline_back">Back</string>
     <string name="timeline_delete">Delete</string>

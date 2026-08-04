@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import javax.inject.Inject
 
 data class WeekBucket(val weekStart: String, val count: Int)
@@ -52,9 +55,8 @@ class AnalyticsViewModel @Inject constructor(
             _itchOverTime.value = checkIns.reversed().map { it.dateKey to it.itchDiscomfort.toFloat() }
             _stressOverTime.value = checkIns.reversed().map { it.dateKey to it.stressLevel.toFloat() }
 
-            _scansByWeek.value = scans.groupBy {
-                it.capturedAt.toString().substring(0, 10) // simplified grouping
-            }.entries.map { WeekBucket(it.key, it.value.size) }.sortedBy { it.weekStart }
+            _scansByWeek.value = scans.groupBy { weekKey(it.capturedAt) }
+                .entries.map { WeekBucket(it.key, it.value.size) }.sortedBy { it.weekStart }
 
             val bands = mutableMapOf<String, Int>()
             for (s in scans) {
@@ -67,5 +69,18 @@ class AnalyticsViewModel @Inject constructor(
             _insights.value = insightsEngine.generateInsights(userId)
             _isLoading.value = false
         }
+    }
+
+    /** Monday-starting calendar week key ("yyyy-MM-dd") for a timestamp. */
+    private fun weekKey(timestamp: Long): String {
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = timestamp
+            set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
     }
 }

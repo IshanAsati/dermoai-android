@@ -85,7 +85,55 @@ class OnboardingProfileStore @Inject constructor(
         }
     }
 
+    /** Persists the whole profile at once (used to stage it until auth succeeds). */
+    suspend fun save(profile: OnboardingProfile) {
+        context.onboardingStore.edit { prefs ->
+            prefs[KEY_DISPLAY_NAME] = profile.displayName
+            prefs[KEY_AGE] = profile.age
+            prefs[KEY_GENDER] = profile.gender
+            prefs[KEY_SKIN_TYPE] = profile.skinType
+            prefs[KEY_SKIN_TONE] = profile.skinTone
+            prefs[KEY_SKIN_CONCERNS] = profile.skinConcerns
+            prefs[KEY_ALLERGIES] = profile.allergies
+            prefs[KEY_MEDICATIONS] = profile.medications
+            prefs[KEY_SUN_EXPOSURE] = profile.sunExposure
+            prefs[KEY_WATER_INTAKE] = profile.waterIntake
+            prefs[KEY_SLEEP_HOURS] = profile.sleepHours
+            prefs[KEY_STRESS_LEVEL] = profile.stressLevel
+            prefs[KEY_DIET] = profile.diet
+            prefs[KEY_SMOKING] = profile.smoking.toString()
+            prefs[KEY_ALCOHOL] = profile.alcohol.toString()
+            prefs[KEY_EXERCISE] = profile.exercise
+            prefs[KEY_SKINCARE_ROUTINE] = profile.skinCareRoutine
+            prefs[KEY_LANGUAGE] = profile.language
+        }
+    }
+
     suspend fun clear() {
         context.onboardingStore.edit { it.clear() }
     }
 }
+
+/** Maps the staged profile into the Room entity for a specific user id. */
+fun OnboardingProfile.toEntity(userId: String): com.dermoai.core.database.entity.UserProfileDetailsEntity =
+    com.dermoai.core.database.entity.UserProfileDetailsEntity(
+        userId = userId,
+        age = age.toIntOrNull()?.coerceIn(1, 120) ?: 0,
+        gender = gender,
+        skinType = skinType,
+        skinTone = skinTone,
+        skinConcerns = skinConcerns,
+        allergies = allergies,
+        medications = medications,
+        sunExposure = sunExposure,
+        waterIntake = waterIntake,
+        sleepHours = sleepHours,
+        stressLevel = stressLevel,
+        diet = diet,
+        smoking = smoking,
+        alcohol = alcohol,
+        exercise = exercise,
+        skinCareRoutine = skinCareRoutine,
+        language = language,
+        createdAt = System.currentTimeMillis(),
+    )

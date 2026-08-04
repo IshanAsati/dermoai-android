@@ -42,6 +42,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -209,6 +210,6 @@ private fun AddRoutineForm(viewModel: TreatmentViewModel, userId: String) {
             modifier = Modifier.height(56.dp),
             containerColor = DermoColors.TealAccent,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-        ) { Icon(Icons.Outlined.Add, null) }
+        ) { Icon(Icons.Outlined.Add, stringResource(R.string.treatment_add_routine)) }
     }
 }

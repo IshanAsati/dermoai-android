@@ -1,5 +1,9 @@
 package com.dermoai.feature.skinnmind
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +44,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -62,8 +69,13 @@ fun SkinMindScreen(
     val streak by viewModel.streak.collectAsState()
     val submitted by viewModel.submitted.collectAsState()
     val recording by viewModel.recording.collectAsState()
+    val recordingError by viewModel.recordingError.collectAsState()
     val formState by viewModel.formState.collectAsState()
     val context = LocalContext.current
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) viewModel.toggleRecording(context.filesDir) }
 
     Column(modifier = modifier.fillMaxSize()) {
         GradientHeader("Daily SkinMind", subtitle = if (todayCompleted) "Done for today 🔥" else "~30 seconds")
@@ -102,7 +114,11 @@ fun SkinMindScreen(
                 // New product toggle
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Used a new product today?", style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = formState.newProductUsed, onCheckedChange = { viewModel.updateNewProduct(it) })
+                    Switch(
+                        checked = formState.newProductUsed,
+                        onCheckedChange = { viewModel.updateNewProduct(it) },
+                        modifier = Modifier.semantics { contentDescription = "Used a new product today" },
+                    )
                 }
                 if (formState.newProductUsed) {
                     OutlinedTextField(
@@ -125,16 +141,27 @@ fun SkinMindScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
                     )
-                    IconButton(onClick = { viewModel.toggleRecording(context.filesDir) }) {
+                    IconButton(onClick = {
+                        if (recording) {
+                            viewModel.toggleRecording(context.filesDir)
+                        } else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            viewModel.toggleRecording(context.filesDir)
+                        } else {
+                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }) {
                         Icon(
                             if (recording) Icons.Outlined.SelfImprovement else Icons.Outlined.Mic,
                             if (recording) "Recording" else "Record",
-                            tint = if (recording) DermoColors.SoftCoral else DermoColors.VioletAccent,
+                            tint = if (recording) DermoColors.SoftCoral else DermoColors.TealAccent,
                         )
                     }
                 }
                 if (recording) {
                     Text("Recording… tap the mic again to stop", style = MaterialTheme.typography.labelSmall, color = DermoColors.CoralText)
+                }
+                if (recordingError) {
+                    Text("Could not start recording — microphone permission required.", style = MaterialTheme.typography.labelSmall, color = DermoColors.CoralText)
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -143,7 +170,7 @@ fun SkinMindScreen(
                     onClick = { viewModel.submit(userId) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(16.dp),
-                    containerColor = DermoColors.VioletAccent,
+                    containerColor = DermoColors.TealAccent,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ) {
                     Text("Save Check-in", style = MaterialTheme.typography.titleMedium)
@@ -197,7 +224,7 @@ private fun EmojiSliderRow(title: String, value: Int, max: Int, icons: List<Imag
                         MoodLabels.getOrElse(idx) { "Mood ${idx + 1} of $max" } +
                             if (isSelected) ", selected" else ", not selected",
                         Modifier.size(32.dp),
-                        tint = if (isSelected) DermoColors.VioletAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isSelected) DermoColors.TealAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

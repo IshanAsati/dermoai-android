@@ -24,4 +24,7 @@ interface SkinScanDao {
 
     @Query("DELETE FROM skin_scans WHERE id = :scanId")
     suspend fun deleteById(scanId: String)
+
+    @Query("UPDATE skin_scans SET voiceNotePath = :path WHERE id = :scanId")
+    suspend fun updateVoiceNote(scanId: String, path: String?)
 }
