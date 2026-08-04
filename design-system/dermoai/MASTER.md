@@ -7,8 +7,8 @@
 ---
 
 **Project:** DermoAI
-**Generated:** 2026-08-01 16:33:02
-**Category:** Yoga & Stretching Guide
+**Generated:** 2026-08-05 01:35:00
+**Category:** Healthcare App
 
 ---
 
@@ -18,18 +18,18 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#0891B2` | `--color-primary` |
+| Primary | `#8B5CF6` | `--color-primary` |
 | On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#22D3EE` | `--color-secondary` |
+| Secondary | `#C4B5FD` | `--color-secondary` |
 | Accent/CTA | `#059669` | `--color-accent` |
-| Background | `#ECFEFF` | `--color-background` |
-| Foreground | `#164E63` | `--color-foreground` |
-| Muted | `#E8F1F6` | `--color-muted` |
-| Border | `#A5F3FC` | `--color-border` |
+| Background | `#FAF5FF` | `--color-background` |
+| Foreground | `#4C1D95` | `--color-foreground` |
+| Muted | `#EDEFF9` | `--color-muted` |
+| Border | `#EDE9FE` | `--color-border` |
 | Destructive | `#DC2626` | `--color-destructive` |
-| Ring | `#0891B2` | `--color-ring` |
+| Ring | `#8B5CF6` | `--color-ring` |
 
-**Color Notes:** Calm cyan + health green
+**Color Notes:** Calming lavender + wellness green [Accent adjusted from #10B981 for WCAG 3:1]
 
 ### Typography
 
@@ -90,8 +90,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #0891B2;
-  border: 2px solid #0891B2;
+  color: #8B5CF6;
+  border: 2px solid #8B5CF6;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -104,7 +104,7 @@
 
 ```css
 .card {
-  background: #ECFEFF;
+  background: #FAF5FF;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -130,9 +130,9 @@
 }
 
 .input:focus {
-  border-color: #0891B2;
+  border-color: #8B5CF6;
   outline: none;
-  box-shadow: 0 0 0 3px #0891B220;
+  box-shadow: 0 0 0 3px #8B5CF620;
 }
 ```
 
@@ -158,13 +158,13 @@
 
 ## Style Guidelines
 
-**Style:** Organic Biophilic
+**Style:** Neumorphism
 
-**Keywords:** Nature, organic shapes, green, sustainable, rounded, flowing, wellness, earthy, natural textures
+**Keywords:** Soft UI, embossed, debossed, convex, concave, light source, subtle depth, rounded (12-16px), monochromatic
 
-**Best For:** Wellness apps, sustainability brands, eco products, health apps, meditation, organic food brands
+**Best For:** Health/wellness apps, meditation platforms, fitness trackers, minimal interaction UIs
 
-**Key Effects:** Rounded corners (16-24px), organic curves (border-radius variations), natural shadows, flowing SVG shapes
+**Key Effects:** Soft box-shadow (multiple: -5px -5px 15px, 5px 5px 15px), smooth press (150ms), inner subtle shadow
 
 ### Page Pattern
 
@@ -178,8 +178,9 @@
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Inconsistent styling
-- ❌ Poor contrast ratios
+- ❌ Bright neon colors
+- ❌ Motion-heavy animations
+- ❌ AI purple/pink gradients
 
 ### Additional Forbidden Patterns
 
@@ -206,28 +207,3 @@ Before delivering any UI code, verify:
 - [ ] Responsive: 375px, 768px, 1024px, 1440px
 - [ ] No content hidden behind fixed navbars
 - [ ] No horizontal scroll on mobile
-
----
-
-## ⚠️ FINAL DECISIONS (overrides the recommendations above — user-approved)
-
-**Stack:** Android · Jetpack Compose (Material 3). **Style:** Neumorphism (Soft UI) — confirmed best-fit for health/wellness by this skill's DB; not flat.
-
-**Palette — "Pine & Cream" (light):**
-| Token | Hex |
-|---|---|
-| Base (background/surface) | `#EAE4DA` warm sand |
-| Raised fill (cards) | `#F4EFE7` warm cream |
-| Inset well (inputs, pressed) | `#E2DCD1` |
-| Shadow highlight / shadow dark | `#FFFFFF` / `#C9C1B4` |
-| Primary (pine) | `#1E6E5C` (6.1:1 on white) |
-| Primary container (pale pine) | `#D9EDE4` |
-| On-primary-container text | `#123F33` |
-| Text primary / secondary | `#202B26` / `#55645C` (≥4.9:1) |
-| Semantic: positive / watch / alert | `#65A58D` sage / `#D4953A` amber / `#E8634A` coral (text variants `SageText/AmberText/CoralText` ≥5:1) |
-
-**Effects:** dual shadows on raised (hi top-left, lo bottom-right), inner shadow + inset fill on pressed (150ms), radius 12–16dp wells / 20–28dp cards.
-
-**Typography:** serif display roles (display→headlineSmall, Noto Serif; future: bundle Lora variable font) + SansSerif body/UI. All M3 scale, no inline sp.
-
-**Anti-patterns to keep honoring:** emoji as structural icons (🔥 only as text content in streak pill), contrast <4.5:1, hardcoded colors in feature code (use DermoColors / theme tokens).
