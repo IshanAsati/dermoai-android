@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -166,7 +167,7 @@ class ScanViewModel @Inject constructor(
     }
 
     fun cropAndSave(sourcePath: String, rect: CropRect, rotation: Float): String {
-        val src = BitmapFactory.decodeFile(sourcePath)
+        val src = decodeUpright(sourcePath, MAX_CROP_PX)
             ?: throw IllegalArgumentException("Failed to decode image")
         val bw = src.width.toFloat()
         val bh = src.height.toFloat()
@@ -191,7 +192,7 @@ class ScanViewModel @Inject constructor(
         try {
             // Decode the full-resolution capture off the main thread — an in-memory
             // decode here can take hundreds of ms and ANR on low-memory devices.
-            val bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(photoPath) }
+            val bitmap = withContext(Dispatchers.IO) { decodeUpright(photoPath, MAX_CROP_PX) }
             if (bitmap == null) {
                 inferenceState = InferenceUiState.Error("Failed to load image")
                 return
@@ -281,6 +282,61 @@ data class CropRect(
     val width: Float = 0.8f,
     val height: Float = 0.7f,
 )
+
+/** Longest edge kept when decoding for on-screen preview / for the crop source. */
+private const val MAX_PREVIEW_PX = 1280
+private const val MAX_CROP_PX = 2048
+
+/**
+ * Decodes [path] downscaled to roughly [maxDimension] px on its longest edge (subsampling
+ * is limited to powers of two, so the result is never *smaller* than that), with any EXIF
+ * orientation baked in — [BitmapFactory] ignores EXIF, which otherwise leaves gallery and
+ * camera photos sideways. A rotated photo reaches the model rotated, and the resulting
+ * misclassification looks like a model fault rather than a decoding one.
+ */
+private fun decodeUpright(path: String, maxDimension: Int): Bitmap? {
+    if (path.isEmpty()) return null
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(path, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+    var sampleSize = 1
+    while (maxOf(bounds.outWidth, bounds.outHeight) / (sampleSize * 2) >= maxDimension) {
+        sampleSize *= 2
+    }
+    val decoded = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply {
+        inSampleSize = sampleSize
+    }) ?: return null
+
+    val matrix = exifMatrix(path) ?: return decoded
+    return runCatching {
+        Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+            .also { if (it !== decoded) decoded.recycle() }
+    }.getOrDefault(decoded)
+}
+
+/** Transform that puts [path] upright, or null when no correction is needed. */
+private fun exifMatrix(path: String): Matrix? {
+    val orientation = runCatching {
+        ExifInterface(path).getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL,
+        )
+    }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+    return Matrix().apply {
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> { postRotate(90f); postScale(-1f, 1f) }
+            ExifInterface.ORIENTATION_TRANSVERSE -> { postRotate(270f); postScale(-1f, 1f) }
+            else -> return null
+        }
+    }
+}
 
 @Composable
 fun ScanEntryScreen(
@@ -763,7 +819,11 @@ fun ScanReviewScreen(
         }
 
         Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp)) {
-            val bmp = remember(photoPath) { if (photoPath.isNotEmpty()) BitmapFactory.decodeFile(photoPath) else null }
+            // Must stay EXIF-aware in lockstep with cropAndSave: CropRect is fractional,
+            // expressed in the coordinate space of whatever bitmap this screen displays.
+            // If the preview stayed raw while the crop went upright, the box drawn over a
+            // lesion would silently crop background on any rotated photo.
+            val bmp = remember(photoPath) { if (photoPath.isNotEmpty()) decodeUpright(photoPath, MAX_PREVIEW_PX) else null }
             if (bmp != null) {
                 Image(bmp.asImageBitmap(), "Captured photo", Modifier.fillMaxSize())
                 CropOverlay(
@@ -940,7 +1000,7 @@ private fun ResultsContent(
     showDoctorCta: Boolean,
     onFindDermatologist: () -> Unit,
 ) {
-    val bmp = remember(photoPath) { BitmapFactory.decodeFile(photoPath) }
+    val bmp = remember(photoPath) { decodeUpright(photoPath, MAX_PREVIEW_PX) }
     val scrollState = rememberScrollState()
 
     Column(
