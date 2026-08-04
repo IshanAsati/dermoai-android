@@ -10,6 +10,7 @@ Severity: **CRITICAL** (blocks core flow / crash) · **MAJOR** (wrong behavior, 
 - **Location:** `app/src/main/assets/ml/` — contains only `labels.txt` + `model_config.json`; `ml/skin_model.tflite` is absent. Loader: `core/ml/.../TfliteInterpreterHolder.kt:104` (`MODEL_ASSET_PATH = "ml/skin_model.tflite"`), `loadModelFile` at `:67-76` uses `assets.openFd`.
 - **Reproduce:** Launch app → Scan → capture/review → Analyze. Inference `initialize()` throws `FileNotFoundException` → UI shows "Model not available" (`ScanScreens.kt` error state).
 - **Expected:** model loads and returns predictions. **Actual:** permanent error; scan feature is non-functional on-device.
+- **Status (verified on-device, emulator pass):** graceful degradation confirmed — scan flow shows "Analysis unavailable / Model not available" with Retry/Retake/Save-to-Timeline recovery options; no crash (0 FATAL/ANR in logcat). The live scan demo remains blocked until the binary is added.
 - **Root cause:** the TFLite conversion from the PyTorch checkpoint (code comment at `TfliteSkinInferenceEngine.kt:19` calls it "Phase 6") was never committed.
 - **Fix steps:**
   1. Convert the training checkpoint to TFLite (float32, input 224×224×3, output 12 logits matching `labels.txt` order).
@@ -150,6 +151,26 @@ Severity: **CRITICAL** (blocks core flow / crash) · **MAJOR** (wrong behavior, 
 
 - **Observation:** cold-boot ANR storms on this machine are caused by the guest `android.hardware.sensors-service.multihal` spinning at ~95% CPU (known emulator bug).
 - **Fix recipe:** `adb root && kill -9 $(pidof android.hardware.sensors-service.multihal)` after boot (`tools/run-emulator.sh` does this). App itself renders smooth.
+
+---
+
+## Emulator pass — VERIFIED (Phase 1–5 delivery, warm Pine & Cream retheme)
+
+Run on AVD `dermoai_test` (API 36, `-gpu host`, NVIDIA RTX 4050; sensors-HAL workaround applied). APK: `app/build/outputs/apk/debug/app-debug.apk` (built from `assembleDebug`).
+
+| Check | Result |
+|---|---|
+| App install + launch | ✅ installed; `MainActivity` resumed; 0 FATAL/ANR |
+| Home screen palette | ✅ screencap pixel analysis: `#EAE4DA` Canvas base dominant, `#F4EFE7` CardWhite raised, `#E2DCD1` TintSweep inset, `#D9EDE4` TealLight hero, pine `#1E6E5C` accents — warm Pine & Cream confirmed on-device |
+| More hub | ✅ all rows incl. FAQ + Find a dermatologist |
+| FAQ | ✅ renders; search "abcde" filters 16→2; card expands w/ full answer |
+| Finder | ✅ renders + disclaimer; graceful "Could not determine your location" + Retry (both when permission denied and when granted but emulator GPS has no fix — `geo fix` doesn't propagate on this API 36 image; environmental) |
+| Scan entry / camera / crop | ✅ "Ready to scan" → virtual camera ("Center skin area in brackets") → "Adjust Crop" + Retake/Analyze |
+| B-01 (missing model) | ✅ graceful "Model not available" error screen + recovery options, no crash |
+| Timeline / SkinMind | ✅ render w/ empty states + disclaimers |
+| Screenshots | `verification/` — 01-home, 02-more-hub, 03-finder-location-denied, 04-faq, 05-scan-camera, 06-scan-review |
+
+**Not verified on-device (environmental):** Overpass map data fetch (needs a real location fix; emulator GPS is null), Settings deep-dive, dark mode toggle visual.
 
 ---
 
