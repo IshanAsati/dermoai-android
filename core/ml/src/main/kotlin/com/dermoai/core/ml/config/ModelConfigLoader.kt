@@ -31,6 +31,7 @@ class ModelConfigLoader @Inject constructor(
             melanomaIndex = obj.optInt("melanomaIndex", 5),
             melanomaLogitBias = obj.optDouble("melanomaLogitBias", 0.0).toFloat(),
             useTestTimeAugmentation = obj.optBoolean("useTestTimeAugmentation", true),
+            healthyIndex = obj.optInt("healthyIndex", 11),
         )
     }
 

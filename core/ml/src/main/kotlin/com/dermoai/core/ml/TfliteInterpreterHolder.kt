@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.dermoai.core.domain.ml.InferenceResult
 import com.dermoai.core.domain.model.ConditionSeverity
+import com.dermoai.core.domain.model.HealthyGate
 import com.dermoai.core.domain.model.ModelConfig
 import com.dermoai.core.domain.model.SkinCondition
 import com.dermoai.core.ml.preprocessing.ImagePreprocessor
@@ -19,16 +20,37 @@ class TfliteInterpreterHolder @Inject constructor(
     private val preprocessor: ImagePreprocessor,
 ) {
     private var interpreter: Interpreter? = null
+    private var healthyGate: HealthyGate? = null
+
+    /** Output tensor indices, resolved by width since TFLite does not preserve order. */
+    private var logitsOutput = 0
+    private var featuresOutput = -1
 
     val isLoaded: Boolean get() = interpreter != null
 
-    fun load(context: Context, config: ModelConfig) {
+    fun load(context: Context, config: ModelConfig, gate: HealthyGate? = null) {
         release()
         val modelBuffer = loadModelFile(context, MODEL_ASSET_PATH)
         val options = Interpreter.Options().apply {
             setNumThreads(4)
         }
-        interpreter = Interpreter(modelBuffer, options)
+        val created = Interpreter(modelBuffer, options)
+        resolveOutputs(created, config)
+        interpreter = created
+        // A gate is useless without the feature output to score, and older
+        // single-output models predate it.
+        healthyGate = gate.takeIf { featuresOutput >= 0 }
+    }
+
+    private fun resolveOutputs(interpreter: Interpreter, config: ModelConfig) {
+        logitsOutput = 0
+        featuresOutput = -1
+        for (i in 0 until interpreter.outputTensorCount) {
+            when (interpreter.getOutputTensor(i).shape().last()) {
+                config.outputClasses -> logitsOutput = i
+                FEATURE_DIM -> featuresOutput = i
+            }
+        }
     }
 
     fun runInference(
@@ -38,11 +60,19 @@ class TfliteInterpreterHolder @Inject constructor(
     ): InferenceResult {
         val interpreter = interpreter ?: error("Interpreter not loaded")
         val input = preprocessor.prepareInput(bitmap, config)
-        val output = Array(1) { FloatArray(config.outputClasses) }
-        interpreter.run(input, output)
-        val probabilities = softmax(output[0], config.melanomaIndex, config.melanomaLogitBias)
+
+        val logits = Array(1) { FloatArray(config.outputClasses) }
+        val outputs = mutableMapOf<Int, Any>(logitsOutput to logits)
+        val features = if (featuresOutput >= 0) {
+            Array(1) { FloatArray(FEATURE_DIM) }.also { outputs[featuresOutput] = it }
+        } else {
+            null
+        }
+        interpreter.runForMultipleInputsOutputs(arrayOf<Any>(input), outputs)
+
+        val probabilities = softmax(logits[0], config.melanomaIndex, config.melanomaLogitBias)
         val ranked = probabilities.indices.sortedByDescending { probabilities[it] }
-        val predictions = ranked.map { index ->
+        var predictions = ranked.map { index ->
             SkinCondition(
                 label = labels.getOrElse(index) { "Unknown" },
                 code = LABEL_CODES.getOrElse(index) { "UNK" },
@@ -50,6 +80,20 @@ class TfliteInterpreterHolder @Inject constructor(
                 severity = severityFor(index),
             )
         }
+
+        // The 12-class head never predicts normal skin on real photos, so when the
+        // feature-space gate says healthy it takes precedence. See HealthyGate.applyTo.
+        val gate = healthyGate
+        val featureVector = features?.first()
+        if (gate != null && featureVector != null) {
+            predictions = gate.applyTo(
+                ranked = predictions,
+                features = featureVector,
+                healthyLabel = labels.getOrElse(config.healthyIndex) { "Healthy / Normal Skin" },
+                healthyCode = LABEL_CODES.getOrElse(config.healthyIndex) { "Healthy" },
+            )
+        }
+
         val top = predictions.first()
         return InferenceResult(
             topPrediction = top,
@@ -62,6 +106,8 @@ class TfliteInterpreterHolder @Inject constructor(
     fun release() {
         interpreter?.close()
         interpreter = null
+        healthyGate = null
+        featuresOutput = -1
     }
 
     private fun loadModelFile(context: Context, assetPath: String): MappedByteBuffer {
@@ -102,6 +148,9 @@ class TfliteInterpreterHolder @Inject constructor(
 
     companion object {
         const val MODEL_ASSET_PATH = "ml/skin_model.tflite"
+
+        /** Width of the penultimate feature vector the healthy gate scores. */
+        const val FEATURE_DIM = 1024
 
         val LABEL_CODES = listOf(
             "BCC", "ACK", "NEV", "SEK", "SCC", "MEL",
