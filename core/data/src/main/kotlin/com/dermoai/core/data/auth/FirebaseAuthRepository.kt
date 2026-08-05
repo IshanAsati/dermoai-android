@@ -6,6 +6,7 @@ import com.dermoai.core.data.preferences.UserPreferencesDataStore
 import com.dermoai.core.database.dao.UserProfileDao
 import com.dermoai.core.database.entity.UserProfileEntity
 import com.dermoai.core.domain.model.AuthUser
+import com.dermoai.core.domain.model.UserRole
 import com.dermoai.core.domain.repository.AuthRepository
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -233,6 +234,13 @@ class FirebaseAuthRepository @Inject constructor(
                 } else {
                     UserProfileEntity.SYNCED
                 },
+                // ── doctor dashboard: role plumbing only ──────────────────────
+                // An existing role always wins. Firebase's user object carries no
+                // role, so `user.role` is the PATIENT default on every non-local
+                // sign-in, and taking it here would silently demote a doctor on
+                // their next launch. Role *changes* belong to the doctor feature;
+                // auth only seeds the default for a brand-new profile row.
+                role = existing?.role ?: user.role.name,
             ),
         )
         preferences.setActiveUserId(user.id)
@@ -248,6 +256,10 @@ class FirebaseAuthRepository @Inject constructor(
             awaitClose { auth.removeAuthStateListener(listener) }
         }
 
+    // Role is deliberately absent here: a FirebaseUser carries no role claim, so
+    // this mapping leaves AuthUser.role at its PATIENT default. Callers that need
+    // the persisted role in Firebase mode should read it from user_profiles via
+    // DoctorProfile/UserProfileDao rather than trusting this object.
     private fun FirebaseUser.toAuthUser(): AuthUser = AuthUser(
         id = uid,
         email = email.orEmpty(),
@@ -260,6 +272,10 @@ class FirebaseAuthRepository @Inject constructor(
         id = id,
         email = email,
         displayName = displayName,
+        // ── doctor dashboard: role plumbing only ──────────────────────────────
+        // Lenient parse: an unrecognised stored value downgrades to PATIENT
+        // rather than throwing, so a bad row costs a surface, not the session.
+        role = UserRole.fromStorage(role),
     )
 
     private fun mapAuthError(throwable: Throwable, fallback: String): AppResult.Error {

@@ -29,6 +29,73 @@
     <string name="auth_local_mode_banner">Demo mode: Firebase not configured. Email sign-in works locally.</string>
     <string name="auth_sign_out">Sign out</string>
     <string name="auth_error_generic">Something went wrong. Please try again.</string>
+
+    <!-- ── Doctor sign-up ──────────────────────────────────────────────────
+         Entry point lives at the bottom of the patient sign-up form: doctors
+         are a small minority of accounts, so this is a deliberate off-ramp
+         rather than a choice every patient has to make first. -->
+    <string name="doctor_sign_up_entry">Sign up as a healthcare professional</string>
+    <string name="doctor_sign_up_title">Professional account</string>
+    <string name="doctor_sign_up_subtitle">Your credentials are reviewed by a person before your account is verified</string>
+    <string name="doctor_sign_up_section_account">Account</string>
+    <string name="doctor_sign_up_section_credentials">Credentials</string>
+    <string name="doctor_sign_up_section_about">About you</string>
+    <string name="doctor_sign_up_submit">Submit for review</string>
+    <string name="doctor_sign_up_have_account">Already have an account? Sign in</string>
+    <string name="doctor_sign_up_review_notice">Submitting creates your account and sends your credentials for manual review. You will not be able to see any patient data until a reviewer approves them.</string>
+    <string name="doctor_sign_up_optional">Optional</string>
+
+    <string name="doctor_field_full_name">Full name</string>
+    <string name="doctor_field_email">Email</string>
+    <string name="doctor_field_password">Password</string>
+    <string name="doctor_field_registration_number">Medical registration number</string>
+    <string name="doctor_field_specialty">Specialty</string>
+    <string name="doctor_field_institution">Hospital or clinic</string>
+    <string name="doctor_field_years_experience">Years of experience</string>
+    <string name="doctor_field_qualification">Qualification</string>
+    <string name="doctor_field_qualification_hint">e.g. MBBS, MD Dermatology</string>
+    <string name="doctor_field_qualifications">Qualifications</string>
+    <string name="doctor_field_bio">Short bio</string>
+    <string name="doctor_field_bio_hint">A sentence or two about your practice</string>
+    <string name="doctor_qualification_add">Add</string>
+    <string name="doctor_qualification_remove">Remove %1$s</string>
+    <string name="doctor_show_password">Show password</string>
+    <string name="doctor_hide_password">Hide password</string>
+
+    <string name="doctor_error_required">Required</string>
+    <string name="doctor_error_invalid_email">Enter a valid email address</string>
+    <string name="doctor_error_password_too_short">Use at least 6 characters</string>
+    <string name="doctor_error_no_qualifications">Add at least one qualification</string>
+    <string name="doctor_error_years_not_a_number">Enter a whole number of years</string>
+    <string name="doctor_error_years_out_of_range">Enter a number between 0 and 70</string>
+
+    <!-- ── Verification status ─────────────────────────────────────────────
+         Wording is intentionally flat. "Pending" must not read as a near-miss
+         for "Verified", because until a human says otherwise the claim is
+         simply unchecked. -->
+    <string name="doctor_status_verified">Verified</string>
+    <string name="doctor_status_pending">Awaiting review</string>
+    <string name="doctor_status_unverified">Not submitted</string>
+    <string name="doctor_status_rejected">Not approved</string>
+
+    <string name="doctor_status_title">Verification</string>
+    <string name="doctor_status_subtitle">Where your professional account stands</string>
+    <string name="doctor_status_pending_body">A reviewer checks your registration number against your medical council\'s register by hand. This is not automatic and there is no way to speed it up from the app.</string>
+    <string name="doctor_status_unverified_body">We have no credentials on file for this account yet, so there is nothing to review. Submit them to start the process.</string>
+    <string name="doctor_status_rejected_body">A reviewer could not confirm these credentials. This usually means the registration number did not match the name on the register. Contact support to correct your details and be reviewed again.</string>
+    <string name="doctor_status_allowed_title">What you can do now</string>
+    <string name="doctor_status_allowed_scan">Use every patient-side feature: scans, timeline, routines and reports for your own skin.</string>
+    <string name="doctor_status_allowed_profile">Correct your submitted details by contacting support.</string>
+    <string name="doctor_status_blocked_title">What you cannot do yet</string>
+    <string name="doctor_status_blocked_patients">See any patient\'s scans, photos or notes — including patients who invite you.</string>
+    <string name="doctor_status_blocked_invites">Accept care invitations or appear to patients as a verified clinician.</string>
+    <string name="doctor_status_blocked_reason">These stay locked because an unreviewed claim is not evidence, and the data behind them is someone else\'s medical history.</string>
+    <string name="doctor_status_credentials_title">Submitted credentials</string>
+    <string name="doctor_status_credentials_readonly">Read-only. Changes go through the same review, so support edits them for you.</string>
+    <string name="doctor_status_empty">No credentials on file for this account.</string>
+    <string name="doctor_status_contact_support">Contact support</string>
+    <string name="doctor_status_sign_out">Sign out</string>
+    <string name="doctor_status_not_provided">Not provided</string>
     <!-- Replace with Firebase Web client ID when the real google-services.json is added -->
     <string name="default_web_client_id" translatable="false">placeholder-web-client-id.apps.googleusercontent.com</string>
 </resources>

@@ -47,12 +47,23 @@ import com.dermoai.core.ui.theme.DermoColors
 
 /**
  * Email/password registration.
+ *
+ * The clinician path hangs off the bottom of this screen rather than being a
+ * choice at the top: doctors are a small fraction of accounts, and asking every
+ * patient "which are you?" before they can sign up costs the majority a decision
+ * to buy the minority a shortcut.
  */
 @Composable
 fun SignUpScreen(
     onSignedUp: () -> Unit,
     onNavigateToSignIn: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Defaulted so existing call sites compile untouched; navigation wires it to
+     * [DoctorSignUpScreen]. A no-op default leaves the button inert rather than
+     * crashing if a route forgets it.
+     */
+    onDoctorSignUp: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val form by viewModel.formState.collectAsStateWithLifecycle()
@@ -180,6 +191,19 @@ fun SignUpScreen(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {
                 Text(stringResource(R.string.auth_have_account))
+            }
+            TextButton(
+                onClick = onDoctorSignUp,
+                enabled = !isLoading,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Text(
+                    text = stringResource(R.string.doctor_sign_up_entry),
+                    style = MaterialTheme.typography.bodySmall,
+                    // TealText, not Teal: bodySmall on this background needs the
+                    // darker variant to clear AA.
+                    color = DermoColors.TealText,
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
         }

@@ -21,4 +21,6 @@
     <string name="more_settings">Settings</string>
     <string name="more_faq">FAQ</string>
     <string name="more_find_dermatologist">Find a dermatologist</string>
+    <string name="more_redeem_invite">Connect with a doctor</string>
+    <string name="more_privacy">Who can see my data</string>
 </resources>

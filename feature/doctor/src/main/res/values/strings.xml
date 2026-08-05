@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every user-visible string in feature/doctor.
+
+  Fully externalised on purpose: this feature is read by two different people
+  about the same data, and consent copy that only exists in English inside a
+  composable cannot be reviewed, translated, or corrected without a code change.
+  Prefix `doctor_` so a grep for the feature's copy returns all of it.
+
+  Two strings are deliberately NOT here: PatientTrend.DISCLAIMER and
+  DoctorInvite.unusableReason(). Those live in core:domain because the rules
+  they describe live there, and re-stating them here would let the wording drift
+  away from the behaviour it is describing.
+-->
+<resources>
+
+    <!-- Dashboard -->
+    <string name="doctor_dashboard_title">Patient inbox</string>
+    <string name="doctor_dashboard_subtitle">Your clinician dashboard</string>
+    <string name="doctor_dashboard_ranked_note">Ordered by clinical urgency — highest severity first, then worsening trends, then patients who have stopped scanning.</string>
+    <string name="doctor_verified_badge">Verified clinician</string>
+    <plurals name="doctor_active_patients">
+        <item quantity="one">%1$d active patient</item>
+        <item quantity="other">%1$d active patients</item>
+    </plurals>
+
+    <string name="doctor_no_profile_title">No clinician profile</string>
+    <string name="doctor_no_profile_body">This account has no doctor profile yet. Add your registration details to request verification.</string>
+
+    <string name="doctor_locked_title">Verification pending</string>
+    <string name="doctor_locked_body">Patient data stays hidden until a person checks your clinician credentials. Nothing here unlocks automatically.\n\nStatus: %1$s</string>
+    <string name="doctor_status_unverified">Not yet submitted</string>
+    <string name="doctor_status_pending">Under review</string>
+    <string name="doctor_status_rejected">Not approved</string>
+    <string name="doctor_status_verified">Verified</string>
+
+    <string name="doctor_empty_title">No patients linked</string>
+    <string name="doctor_empty_body">Invite a patient with a code or QR to start following their scans.</string>
+    <string name="doctor_invite_cta">Invite a patient</string>
+
+    <string name="doctor_last_scan">Last scan %1$s</string>
+    <string name="doctor_no_scans">No scans yet</string>
+    <string name="doctor_open_patient">Open %1$s</string>
+
+    <!-- Chips -->
+    <string name="doctor_adherence_days">%1$d/%2$d days</string>
+    <string name="doctor_adherence_desc">Scanning: %1$s, %2$s</string>
+    <string name="doctor_band_good">On track</string>
+    <string name="doctor_band_slipping">Slipping</string>
+    <string name="doctor_band_inactive">Inactive</string>
+    <string name="doctor_trend_improving">Improving</string>
+    <string name="doctor_trend_stable">Stable</string>
+    <string name="doctor_trend_worsening">Worsening</string>
+    <string name="doctor_trend_unknown">Not enough data</string>
+    <string name="doctor_trend_desc">Trend: %1$s</string>
+    <string name="doctor_severity_low">Low concern</string>
+    <string name="doctor_severity_medium">Medium concern</string>
+    <string name="doctor_severity_high">High concern</string>
+    <string name="doctor_severity_critical">Critical concern</string>
+    <string name="doctor_severity_unknown">No finding</string>
+    <string name="doctor_severity_desc">Latest finding: %1$s</string>
+
+    <!-- Patient detail -->
+    <string name="doctor_patient_subtitle">Shared with you under an active consent link.</string>
+    <string name="doctor_patient_adherence_title">Scanning consistency</string>
+    <string name="doctor_patient_adherence_body">%1$d scans in the last %2$d days, against a %3$d-day cadence. Current streak: %4$d days.</string>
+    <string name="doctor_patient_trend_title">Severity trend</string>
+    <string name="doctor_patient_trend_basis">Based on %1$d scans.</string>
+    <string name="doctor_patient_scans_title">Scan history</string>
+    <string name="doctor_patient_no_scans">This patient has not recorded any scans yet.</string>
+    <string name="doctor_scan_photo_desc">Patient scan photo</string>
+    <string name="doctor_scan_no_photo">Photo unavailable</string>
+    <string name="doctor_confidence">%1$d%% confidence</string>
+
+    <string name="doctor_revoke_title">Revoke access</string>
+    <string name="doctor_revoke_body">You will no longer see this patient\'s scans. The link stays on record so the patient can see when your access ended.</string>
+    <string name="doctor_revoke_confirm">Revoke</string>
+    <string name="doctor_cancel">Cancel</string>
+    <string name="doctor_revoked_done_title">Access revoked</string>
+    <string name="doctor_revoked_done_body">You no longer have access to this patient\'s scans.</string>
+    <string name="doctor_not_linked_title">No active link</string>
+    <string name="doctor_not_linked_body">This patient has not granted you access, or the link was revoked.</string>
+    <string name="doctor_back">Back</string>
+
+    <!-- Invite (doctor side) -->
+    <string name="doctor_invite_title">Invite a patient</string>
+    <string name="doctor_invite_subtitle">Share a code or QR in the room. Every code expires and has a use limit.</string>
+    <string name="doctor_invite_generate">Generate code</string>
+    <string name="doctor_invite_expiry_label">Expires in</string>
+    <string name="doctor_invite_uses_label">Maximum uses</string>
+    <string name="doctor_invite_days">%1$d days</string>
+    <string name="doctor_invite_qr_desc">QR code containing this invite link</string>
+    <string name="doctor_invite_qr_caption">The patient scans this, or types the code above.</string>
+    <string name="doctor_invite_qr_failed">QR unavailable — read the code out instead.</string>
+    <string name="doctor_invite_active_title">Codes you have issued</string>
+    <string name="doctor_invite_none">No codes yet.</string>
+    <string name="doctor_invite_remaining">%1$d of %2$d uses left</string>
+    <string name="doctor_invite_expires">Expires %1$s</string>
+    <string name="doctor_invite_expired">Expired</string>
+    <string name="doctor_invite_revoked">Cancelled</string>
+    <string name="doctor_invite_spent">Fully used</string>
+    <string name="doctor_invite_revoke">Cancel</string>
+    <string name="doctor_invite_copy">Copy code</string>
+    <string name="doctor_invite_copied">Code copied</string>
+    <string name="doctor_invite_error">Could not create a code. Try again.</string>
+
+    <!-- Redeem (patient side) -->
+    <string name="doctor_redeem_title">Connect with your doctor</string>
+    <string name="doctor_redeem_subtitle">Type the 8-character code your doctor gave you.</string>
+    <string name="doctor_redeem_field_label">Invite code</string>
+    <string name="doctor_redeem_hint">Case and spacing do not matter. The code never contains I, L, O, 0 or 1.</string>
+    <string name="doctor_redeem_check">Check code</string>
+    <string name="doctor_redeem_checking">Checking the code…</string>
+    <string name="doctor_redeem_linking">Granting access…</string>
+    <string name="doctor_redeem_not_found">No invite matches that code. Check each character with your doctor.</string>
+    <string name="doctor_redeem_race">Someone else used the last spot on that code moments ago. Ask your doctor for a new one.</string>
+    <string name="doctor_redeem_error">Something went wrong. Try again.</string>
+
+    <string name="doctor_consent_title">What %1$s will be able to see</string>
+    <string name="doctor_consent_unverified">This clinician has not been verified yet.</string>
+    <string name="doctor_consent_item_photos">Your scan photos</string>
+    <string name="doctor_consent_item_findings">The app\'s findings and confidence for each scan</string>
+    <string name="doctor_consent_item_dates">When each scan was taken</string>
+    <string name="doctor_consent_item_notes">Any notes you attached to a scan</string>
+    <string name="doctor_consent_footer">You can end this at any time from “Who can see my scans”. Every time this doctor opens your record it is logged there for you to read.</string>
+    <string name="doctor_consent_uses_left">This code has %1$d use(s) left.</string>
+    <string name="doctor_consent_agree">I agree — grant access</string>
+    <string name="doctor_consent_decline">Not now</string>
+    <string name="doctor_redeem_linked">%1$s now has access to your scans.</string>
+    <string name="doctor_redeem_already_linked">%1$s already had access to your scans.</string>
+    <string name="doctor_redeem_linked_body">Manage or end this from “Who can see my scans”.</string>
+    <string name="doctor_redeem_done">Done</string>
+
+    <!-- Privacy / audit trail (patient side) -->
+    <string name="doctor_privacy_title">Who can see my scans</string>
+    <string name="doctor_privacy_subtitle">Every doctor you linked, and every time they opened your record.</string>
+    <string name="doctor_privacy_doctors">Linked doctors</string>
+    <string name="doctor_privacy_none">No doctor has access to your scans.</string>
+    <string name="doctor_privacy_active">Access granted %1$s</string>
+    <string name="doctor_privacy_invited">Invited — not yet accepted</string>
+    <string name="doctor_privacy_revoked">Access ended</string>
+    <string name="doctor_privacy_revoke">Revoke access</string>
+    <string name="doctor_privacy_revoke_body">%1$s will immediately lose access to your scans. The record that they had access stays, so you can always see when it started and ended.</string>
+    <string name="doctor_privacy_last_access">Last opened your record %1$s</string>
+    <string name="doctor_privacy_never_accessed">Has not opened your record yet</string>
+    <string name="doctor_privacy_log">Access log</string>
+    <string name="doctor_privacy_log_empty">Nothing has been accessed yet.</string>
+    <string name="doctor_privacy_unknown_doctor">Unknown clinician</string>
+    <string name="doctor_action_viewed_patient">Opened your record</string>
+    <string name="doctor_action_viewed_scan">Opened one of your scans</string>
+    <string name="doctor_action_exported_report">Exported a report</string>
+    <string name="doctor_action_linked_patient">Was granted access</string>
+    <string name="doctor_action_revoked_link">Access ended</string>
+
+</resources>

@@ -76,6 +76,7 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":feature:faq"))
     implementation(project(":feature:finder"))
+    implementation(project(":feature:doctor"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

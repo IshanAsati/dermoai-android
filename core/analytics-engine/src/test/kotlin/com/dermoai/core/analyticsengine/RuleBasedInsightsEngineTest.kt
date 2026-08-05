@@ -22,6 +22,7 @@ private class FakeSkinScanDao(private val items: List<SkinScanEntity>) : SkinSca
     override suspend fun getById(scanId: String) = items.find { it.id == scanId }
     override suspend fun upsert(scan: SkinScanEntity) {}
     override suspend fun deleteById(scanId: String) {}
+    override suspend fun updateVoiceNote(scanId: String, path: String?) {}
 }
 
 private class FakeScanPredictionDao(private val items: List<ScanPredictionEntity>) : ScanPredictionDao {

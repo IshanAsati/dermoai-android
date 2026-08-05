@@ -51,4 +51,17 @@ object DatabaseModule {
 
     @Provides
     fun provideJournalEntryDao(database: DermoDatabase) = database.journalEntryDao()
+
+    // Doctor dashboard (schema v6).
+    @Provides
+    fun provideDoctorProfileDao(database: DermoDatabase) = database.doctorProfileDao()
+
+    @Provides
+    fun providePatientLinkDao(database: DermoDatabase) = database.patientLinkDao()
+
+    @Provides
+    fun provideDoctorInviteDao(database: DermoDatabase) = database.doctorInviteDao()
+
+    @Provides
+    fun provideAuditEntryDao(database: DermoDatabase) = database.auditEntryDao()
 }

@@ -17,11 +17,19 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.dermoai.feature.analytics.AnalyticsPlaceholderScreen
+import com.dermoai.feature.auth.DoctorSessionViewModel
+import com.dermoai.feature.auth.DoctorSignUpScreen
+import com.dermoai.feature.auth.DoctorStatusScreen
 import com.dermoai.feature.auth.OnboardingScreen
 import com.dermoai.feature.auth.SessionViewModel
 import com.dermoai.feature.auth.SignInScreen
 import com.dermoai.feature.auth.SignUpScreen
 import com.dermoai.feature.auth.SplashScreen
+import com.dermoai.feature.doctor.DoctorDashboardScreen
+import com.dermoai.feature.doctor.InvitePatientScreen
+import com.dermoai.feature.doctor.PatientDetailScreen
+import com.dermoai.feature.doctor.PatientPrivacyScreen
+import com.dermoai.feature.doctor.RedeemInviteScreen
 import com.dermoai.feature.home.HomeDashboardScreen
 import com.dermoai.feature.reports.ReportsPlaceholderScreen
 import com.dermoai.feature.scan.ScanCaptureScreen
@@ -53,8 +61,12 @@ import com.dermoai.feature.wellness.WellnessPlaceholderScreen
 @Composable
 fun DermoAppRoot(
     sessionViewModel: SessionViewModel = hiltViewModel(),
+    // Held separately from SessionViewModel so a patient's cold start never waits
+    // on doctor tables it will never read.
+    doctorSessionViewModel: DoctorSessionViewModel = hiltViewModel(),
 ) {
     val session by sessionViewModel.sessionState.collectAsStateWithLifecycle()
+    val doctorSession by doctorSessionViewModel.doctorSession.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDest = navBackStackEntry?.destination
@@ -63,12 +75,24 @@ fun DermoAppRoot(
     val currentTab: TabRoute? = currentDest?.resolveTabRoute()
 
     // Auth + onboarding guard
-    LaunchedEffect(session.isLoading, session.isOnboarded, session.isAuthenticated) {
+    LaunchedEffect(
+        session.isLoading,
+        session.isOnboarded,
+        session.isAuthenticated,
+        doctorSession.isLoading,
+        doctorSession.needsVerification,
+        doctorSession.isVerifiedDoctor,
+    ) {
         if (session.isLoading) return@LaunchedEffect
+        // Doctor state loads from Room a beat after auth. Routing on a half-loaded
+        // value would bounce a verified doctor through the patient home first.
+        if (session.isAuthenticated && doctorSession.isLoading) return@LaunchedEffect
 
         val target: Any = when {
             !session.isOnboarded -> OnboardingRoute
             !session.isAuthenticated -> SignInRoute
+            doctorSession.needsVerification -> DoctorStatusRoute
+            doctorSession.isVerifiedDoctor -> DoctorDashboardRoute
             else -> HomeTab
         }
 
@@ -77,7 +101,10 @@ fun DermoAppRoot(
         val targetRoute = target.routeName()
 
         val isOnTarget = destRoute == targetRoute
-        val isOnSignUp = destRoute == SignUpRoute.routeName()
+        // Doctor sign-up is reached from the patient sign-up screen; neither should
+        // be yanked away while the user is still filling the form in.
+        val isOnSignUp = destRoute == SignUpRoute.routeName() ||
+            destRoute == DoctorSignUpRoute.routeName()
 
         if (!isOnTarget && !isOnSignUp) {
             navController.navigate(target) {
@@ -164,6 +191,76 @@ fun DermoAppRoot(
                     onNavigateToSignIn = {
                         navController.popBackStack()
                     },
+                    onDoctorSignUp = {
+                        navController.navigate(DoctorSignUpRoute)
+                    },
+                )
+            }
+
+            composable<DoctorSignUpRoute> {
+                // Where the doctor lands afterwards is decided by the guard above,
+                // which reads the freshly written role and verification status.
+                DoctorSignUpScreen(
+                    onSignedUp = { },
+                    onNavigateToSignIn = { navController.popBackStack() },
+                )
+            }
+
+            composable<DoctorStatusRoute> {
+                DoctorStatusScreen(
+                    onSignOut = {
+                        sessionViewModel.signOut()
+                    },
+                )
+            }
+
+            // ── Doctor dashboard ────────────────────────────────────
+            composable<DoctorDashboardRoute> {
+                DoctorDashboardScreen(
+                    userId = session.user?.id.orEmpty(),
+                    onPatientClick = { patientUserId ->
+                        navController.navigate(
+                            PatientDetailRoute(
+                                patientUserId = patientUserId,
+                                patientDisplayName = "",
+                            ),
+                        )
+                    },
+                    onInvitePatient = { navController.navigate(InvitePatientRoute) },
+                )
+            }
+
+            composable<PatientDetailRoute> { backStackEntry ->
+                val route: PatientDetailRoute = backStackEntry.toRoute()
+                PatientDetailScreen(
+                    doctorUserId = session.user?.id.orEmpty(),
+                    patientUserId = route.patientUserId,
+                    patientDisplayName = route.patientDisplayName,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable<InvitePatientRoute> {
+                InvitePatientScreen(
+                    userId = session.user?.id.orEmpty(),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Patient-side counterparts ───────────────────────────
+            composable<RedeemInviteRoute> {
+                RedeemInviteScreen(
+                    patientUserId = session.user?.id.orEmpty(),
+                    patientDisplayName = session.user?.displayName.orEmpty(),
+                    onLinked = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable<PatientPrivacyRoute> {
+                PatientPrivacyScreen(
+                    patientUserId = session.user?.id.orEmpty(),
+                    onBack = { navController.popBackStack() },
                 )
             }
 

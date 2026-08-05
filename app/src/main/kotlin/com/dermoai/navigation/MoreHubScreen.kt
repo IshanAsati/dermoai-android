@@ -19,10 +19,12 @@ import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.QuestionMark
 import androidx.compose.material.icons.outlined.SelfImprovement
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -97,6 +99,19 @@ fun MoreHubScreen(
                 icon = Icons.Outlined.LocationOn,
                 label = stringResource(R.string.more_find_dermatologist),
                 onClick = { onNavigate(FindDermatologistRoute) },
+            )
+            // Patient-side halves of the doctor flow. They live here rather than
+            // behind a role check because any patient may be invited by a doctor,
+            // and everyone should be able to reach their own access log.
+            MoreHubRow(
+                icon = Icons.Outlined.GroupAdd,
+                label = stringResource(R.string.more_redeem_invite),
+                onClick = { onNavigate(RedeemInviteRoute) },
+            )
+            MoreHubRow(
+                icon = Icons.Outlined.Shield,
+                label = stringResource(R.string.more_privacy),
+                onClick = { onNavigate(PatientPrivacyRoute) },
             )
 
             Spacer(modifier = Modifier.height(16.dp))
