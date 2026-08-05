@@ -170,6 +170,54 @@
   }
   .readout strong { font-family: var(--serif); font-size: 17px; display: block; color: var(--pine-deep); }
   .readout span { color: var(--slate); }
+  .mini-btn {
+    font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--pine);
+    background: transparent; border: 1.5px solid var(--pine); border-radius: 999px;
+    padding: 8px 16px; cursor: pointer;
+    transition: background .18s ease, color .18s ease;
+  }
+  .mini-btn:hover { background: var(--pine); color: #fff; }
+
+  /* interactive widgets */
+  .widget {
+    background: var(--card); border-radius: 24px; padding: clamp(24px, 4vw, 36px);
+    box-shadow: var(--shadow-hi), var(--shadow-lo); margin-top: 48px;
+  }
+  .check-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+  .check-chip {
+    font-family: var(--sans); font-size: 14px; font-weight: 600;
+    padding: 11px 16px; border-radius: 999px; border: 2px solid var(--pine);
+    background: var(--card); color: var(--pine); cursor: pointer;
+    box-shadow: var(--shadow-hi), var(--shadow-lo);
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+  }
+  .check-chip:hover { transform: translateY(-1px); }
+  .check-chip:active { box-shadow: var(--shadow-in); }
+  .check-chip[aria-pressed="true"] { background: var(--pine); color: #fff; }
+  .verdict {
+    min-height: 76px; border-radius: 16px; padding: 16px 18px;
+    display: flex; align-items: center; background: var(--well);
+    box-shadow: var(--shadow-in); font-size: 15px;
+    transition: background .25s ease;
+  }
+  .verdict strong { font-family: var(--serif); font-size: 17px; display: block; color: var(--pine-deep); }
+  .verdict span { color: var(--slate); }
+  .verdict.sage { background: var(--pine-pale); }
+  .verdict.amber { background: #F3E5C2; }
+  .verdict.coral { background: #F5DAD2; }
+  .verdict.coral strong { color: var(--coral); }
+  .face-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .face-btn {
+    width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--pine);
+    background: var(--card); cursor: pointer; display: grid; place-items: center;
+    box-shadow: var(--shadow-hi), var(--shadow-lo);
+    transition: background .18s ease, transform .18s ease;
+  }
+  .face-btn:hover { transform: translateY(-2px) scale(1.05); }
+  .face-btn:active { box-shadow: var(--shadow-in); }
+  .face-btn[aria-pressed="true"] { background: var(--pine); }
+  .face-btn[aria-pressed="true"] svg { stroke: #fff; }
+  .face-btn svg { width: 30px; height: 30px; stroke: var(--pine); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
   /* problem chapter */
   .problems { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -308,6 +356,7 @@
         <div class="readout" id="readout" aria-live="polite">
           <span>Hover or tap a letter — the five signs dermatologists teach.</span>
         </div>
+        <button class="mini-btn" id="rescan" type="button">Scan again</button>
       </div>
     </div>
   </section>
@@ -366,6 +415,34 @@
           <p>A timeline, daily check-ins and a doctor-ready PDF report show you whether anything is evolving over time.</p>
         </article>
       </div>
+
+      <!-- interactive SkinMind check-in demo -->
+      <div class="widget reveal">
+        <p class="eyebrow" style="margin-bottom:10px">Try a daily check-in</p>
+        <h3 style="margin-bottom:6px">How does your skin feel today?</h3>
+        <p style="color:var(--slate); font-size:15px; margin-bottom:18px">The first 30 seconds of SkinMind. Pick how your skin feels — this is the data that builds your timeline.</p>
+        <div class="face-row" id="face-row">
+          <button class="face-btn" data-feel="1" aria-pressed="false" aria-label="Feels bad">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9 9.5h1M14 9.5h1"/><path d="M8 15C9.3 12.8 14.7 12.8 16 15"/></svg>
+          </button>
+          <button class="face-btn" data-feel="2" aria-pressed="false" aria-label="Feels off">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9 9.5h1M14 9.5h1"/><path d="M8 14.5C9.3 13 14.7 13 16 14.5"/></svg>
+          </button>
+          <button class="face-btn" data-feel="3" aria-pressed="false" aria-label="Feels okay">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9 9.5h1M14 9.5h1"/><path d="M8.5 14.5h7"/></svg>
+          </button>
+          <button class="face-btn" data-feel="4" aria-pressed="false" aria-label="Feels good">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9 9.5h1M14 9.5h1"/><path d="M8 13.5C9.3 15.2 14.7 15.2 16 13.5"/></svg>
+          </button>
+          <button class="face-btn" data-feel="5" aria-pressed="false" aria-label="Feels great">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9 9.5h1M14 9.5h1"/><path d="M8 13C9.3 16 14.7 16 16 13"/></svg>
+          </button>
+        </div>
+        <div class="verdict sage" id="feel-response" aria-live="polite">
+          <span>Pick how your skin feels — DermoAI logs it and connects it to your streaks and trends.</span>
+        </div>
+      </div>
+
       <a class="mini-cta reveal" href="#abcde">And it teaches you what to look for ↓</a>
     </div>
   </section>
@@ -384,6 +461,23 @@
         <div class="abc-card reveal"><span class="letter">C</span><h3>Colour</h3><p>More than one shade, or uneven colour.</p></div>
         <div class="abc-card reveal"><span class="letter">D</span><h3>Diameter</h3><p>Bigger than a pencil eraser (~6 mm).</p></div>
         <div class="abc-card urgent reveal"><span class="letter">E</span><h3>Evolving</h3><p>Changing in size, shape or colour — the one to act on.</p></div>
+      </div>
+
+      <!-- interactive ABCDE check -->
+      <div class="widget reveal">
+        <p class="eyebrow" style="margin-bottom:10px">Try it yourself</p>
+        <h3 style="margin-bottom:6px">Is a spot worth a doctor?</h3>
+        <p style="color:var(--slate); font-size:15px; margin-bottom:18px">Go through the five signs on any spot you're unsure about. Tap every sign you can see on it.</p>
+        <div class="check-chips" id="check-chips">
+          <button class="check-chip" aria-pressed="false" type="button">A — Asymmetry</button>
+          <button class="check-chip" aria-pressed="false" type="button">B — Border</button>
+          <button class="check-chip" aria-pressed="false" type="button">C — Colour</button>
+          <button class="check-chip" aria-pressed="false" type="button">D — Diameter</button>
+          <button class="check-chip" aria-pressed="false" type="button">E — Evolving</button>
+        </div>
+        <div class="verdict sage" id="abcde-verdict" aria-live="polite">
+          <span>No ABCDE warning signs selected — keep photographing it, and the timeline in DermoAI shows you if anything changes.</span>
+        </div>
       </div>
 
       <div class="features">
@@ -493,6 +587,50 @@
     btn.addEventListener('focus', () => show(btn));
     btn.addEventListener('blur', () => clear(btn));
     btn.addEventListener('click', () => { btn.getAttribute('aria-pressed') === 'true' ? clear(btn) : show(btn); });
+  });
+
+  // re-run the scan sweep on demand
+  document.getElementById('rescan').addEventListener('click', () => {
+    scope.classList.remove('scanning');
+    void scope.offsetWidth; // restart the CSS animation
+    scope.classList.add('scanning');
+  });
+
+  // ABCDE check — tap the warning signs you see
+  const abcdeVerdict = document.getElementById('abcde-verdict');
+  const chipCount = () => document.querySelectorAll('.check-chip[aria-pressed="true"]').length;
+  function updateVerdict() {
+    const n = chipCount();
+    abcdeVerdict.className = 'verdict ' + (n === 0 ? 'sage' : n <= 2 ? 'amber' : 'coral');
+    abcdeVerdict.innerHTML = n === 0
+      ? '<span>No ABCDE warning signs selected — keep photographing it, and the timeline in DermoAI shows you if anything changes.</span>'
+      : n <= 2
+      ? '<strong>' + n + ' warning sign' + (n > 1 ? 's' : '') + ' flagged</strong><span>Any ABCDE sign is worth a dermatologist’s look — book a consultation and bring your timeline.</span>'
+      : '<strong>' + n + ' warning signs</strong><span>This fits the pattern dermatologists take seriously — please see a professional soon.</span>';
+  }
+  document.querySelectorAll('.check-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+      updateVerdict();
+    });
+  });
+
+  // SkinMind check-in demo
+  const feelResponse = document.getElementById('feel-response');
+  const feelMessages = {
+    1: '<strong>Not great</strong><span>Logged — worth mentioning to your dermatologist. DermoAI saves it to your daily log.</span>',
+    2: '<strong>Rough day</strong><span>Logged. Over a week, DermoAI can spot a trend you would miss by eye.</span>',
+    3: '<strong>Okay</strong><span>Logged — day 1 of your streak. Consistency is what makes the timeline useful.</span>',
+    4: '<strong>Good</strong><span>Nice. Keep the streak going and watch the trends chart.</span>',
+    5: '<strong>Great</strong><span>Fantastic. Your skin log is building — trends start showing after about a week of check-ins.</span>',
+  };
+  document.querySelectorAll('.face-btn').forEach(face => {
+    face.addEventListener('click', () => {
+      document.querySelectorAll('.face-btn').forEach(f => f.setAttribute('aria-pressed', 'false'));
+      face.setAttribute('aria-pressed', 'true');
+      feelResponse.className = 'verdict sage';
+      feelResponse.innerHTML = feelMessages[face.dataset.feel];
+    });
   });
 </script>
 </body>
