@@ -72,6 +72,15 @@ coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref 
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+# Appwrite client SDK. Client-side only: it authenticates as a *user session*
+# (Account API) and never holds an API key — see core/data/.../sync/README notes
+# and tools/appwrite/README.md. Verified to resolve from mavenCentral, and its
+# AAR manifest carries no manifest placeholders, so no app-level manifest edit
+# is required. It does merge in an INTERNET and a POST_NOTIFICATIONS permission
+# and pulls appcompat/fragment/browser transitively (its OAuth + realtime
+# features), and its POM declares GPL-3.0 — worth a licence review before
+# shipping a closed-source build.
+appwrite-android = { group = "io.appwrite", name = "sdk-for-android", version = "8.1.0" }
 zxing-core = { group = "com.google.zxing", name = "core", version = "3.5.3" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
