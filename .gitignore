@@ -76,3 +76,7 @@ some_healthy_gitignore/
 DermoAI-model-bundle/
 DermoAI-model-bundle.zip
 DermoAI-v*.apk
+
+# Appwrite admin credentials — CONTAINS AN API KEY, never commit
+tools/appwrite/local.env
+local.env

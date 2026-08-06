@@ -122,16 +122,42 @@ COLLECTION_PERMISSIONS = [
 ]
 
 
+_LOCAL_ENV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "local.env")
+
+
+def _from_local_env():
+    """Read tools/appwrite/local.env (gitignored).
+
+    Originally this script took its config from exported environment variables
+    only, which is fine on a POSIX shell and a trap on PowerShell — `export` is
+    not a cmdlet, so all four assignments fail, and the script then reports the
+    first missing variable rather than the real problem. Reading the file makes
+    the happy path shell-agnostic; real environment variables still win.
+    """
+    values = {}
+    if os.path.exists(_LOCAL_ENV):
+        for line in open(_LOCAL_ENV, encoding="utf-8"):
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                values[k.strip()] = v.strip().strip('"').strip("'")
+    return values
+
+
+_FILE_VALUES = _from_local_env()
+
+
 def env(name, required=True):
-    v = (os.environ.get(name) or "").strip()
+    v = (os.environ.get(name) or _FILE_VALUES.get(name) or "").strip()
     if required and not v:
         sys.exit(
             f"ERROR: {name} is not set.\n\n"
-            "Set all four before running:\n"
-            "  export APPWRITE_ENDPOINT=https://sgp.cloud.appwrite.io/v1\n"
-            "  export APPWRITE_PROJECT_ID=...\n"
-            "  export APPWRITE_DATABASE_ID=...\n"
-            "  export APPWRITE_API_KEY=...   # Databases scopes; never commit this\n"
+            f"Easiest fix — put all four in {_LOCAL_ENV} (gitignored),\n"
+            "one KEY=value per line:\n"
+            "  APPWRITE_ENDPOINT=https://sgp.cloud.appwrite.io/v1\n"
+            "  APPWRITE_PROJECT_ID=...\n"
+            "  APPWRITE_DATABASE_ID=...\n"
+            "  APPWRITE_API_KEY=...   # never commit this\n"
         )
     return v
 
@@ -166,7 +192,10 @@ def call(method, path, body=None):
 
 
 def ok(status):
-    return status in (200, 201, 204)
+    # 202 matters: Appwrite creates attributes asynchronously and returns
+    # "Accepted", not "Created". Treating it as a failure makes a completely
+    # successful run print FAILED against every attribute.
+    return status in (200, 201, 202, 204)
 
 
 def report(status, what):

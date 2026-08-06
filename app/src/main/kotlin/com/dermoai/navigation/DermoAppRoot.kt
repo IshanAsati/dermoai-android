@@ -198,10 +198,23 @@ fun DermoAppRoot(
             }
 
             composable<DoctorSignUpRoute> {
-                // Where the doctor lands afterwards is decided by the guard above,
-                // which reads the freshly written role and verification status.
                 DoctorSignUpScreen(
-                    onSignedUp = { },
+                    // Must navigate explicitly. The guard above deliberately does
+                    // not route while the user is on a sign-up screen (so it can't
+                    // yank a half-filled form away), so leaving this empty stranded
+                    // the doctor on the form after a successful submit — the write
+                    // had already happened, with no way to tell.
+                    //
+                    // A newly registered doctor is always PENDING, so the status
+                    // screen is the only correct destination here.
+                    onSignedUp = {
+                        navController.navigate(DoctorStatusRoute) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                    },
                     onNavigateToSignIn = { navController.popBackStack() },
                 )
             }

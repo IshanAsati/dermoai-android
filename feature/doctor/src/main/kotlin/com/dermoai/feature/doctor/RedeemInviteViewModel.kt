@@ -20,6 +20,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
+import com.dermoai.core.data.sync.toEntity
+import com.dermoai.core.data.sync.DoctorSyncRepository
+import com.dermoai.core.common.result.AppResult
 
 /**
  * Why a redemption did not happen.
@@ -85,6 +88,7 @@ class RedeemInviteViewModel @Inject constructor(
     private val doctorProfileDao: DoctorProfileDao,
     private val patientLinkDao: PatientLinkDao,
     private val auditLogger: AuditLogger,
+    private val sync: DoctorSyncRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<RedeemUiState>(RedeemUiState.Entry())
@@ -117,7 +121,17 @@ class RedeemInviteViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = RedeemUiState.Checking
             val now = System.currentTimeMillis()
-            val invite = doctorInviteDao.getByCode(candidate)?.toDomain()
+            // Local first: the doctor and patient may be the same device, and a
+            // hit here needs no network at all.
+            var invite = doctorInviteDao.getByCode(candidate)?.toDomain()
+            if (invite == null) {
+                // The ordinary case for a real consultation — the code was
+                // generated on the clinician's phone and has never existed in
+                // this device's database. Fetch it, and the issuing profile,
+                // then cache both so the rest of the flow is offline-identical
+                // to a locally-issued code.
+                invite = fetchRemoteInvite(candidate)
+            }
             if (invite == null) {
                 _state.value = RedeemUiState.Entry(RedeemRejection.NotFound)
                 return@launch
@@ -137,6 +151,32 @@ class RedeemInviteViewModel @Inject constructor(
             }
             _state.value = RedeemUiState.Consent(invite, doctor)
         }
+    }
+
+    /**
+     * Looks the code up on the backend and caches what it finds locally.
+     *
+     * Returns null for every failure — no backend, no signal, no such code —
+     * because the caller renders them all the same way. Distinguishing "wrong
+     * code" from "no signal" would be better UX, and needs the sync layer to
+     * report the two separately; it currently does not.
+     */
+    private suspend fun fetchRemoteInvite(code: String): DoctorInvite? {
+        val now = System.currentTimeMillis()
+        sync.ensureSession()
+        val remote = (sync.findInviteByCode(code) as? AppResult.Success)?.data?.value
+            ?: return null
+
+        // The profile has to come across too: the consent screen names the
+        // clinician, and linking to an unnamed doctor is exactly what the
+        // existing null-profile branch below refuses to do.
+        val profile = (sync.pullDoctorProfile(remote.doctorUserId) as? AppResult.Success)
+            ?.data?.value
+        if (profile != null) {
+            runCatching { doctorProfileDao.upsert(profile.toEntity(now)) }
+        }
+        runCatching { doctorInviteDao.upsert(remote.toEntity(now)) }
+        return doctorInviteDao.getByCode(code)?.toDomain()
     }
 
     /** Back out of the disclosure without granting anything. */
@@ -187,21 +227,20 @@ class RedeemInviteViewModel @Inject constructor(
                 // `(doctorId, patientUserId)` is unique, so a fresh id would be
                 // a conflict rather than a second link.
                 val linkId = existing?.id ?: UUID.randomUUID().toString()
-                patientLinkDao.upsert(
-                    PatientLinkEntity(
-                        id = linkId,
-                        // Owning account is the doctor's, per the table convention.
-                        userId = doctor.userId,
-                        doctorId = doctor.id,
-                        patientUserId = patientUserId,
-                        patientDisplayName = patientDisplayName,
-                        linkedAt = now,
-                        createdAt = now,
-                        updatedAt = now,
-                        status = LinkStatus.ACTIVE.name,
-                        consentGrantedAt = now,
-                    ),
+                val link = PatientLinkEntity(
+                    id = linkId,
+                    // Owning account is the doctor's, per the table convention.
+                    userId = doctor.userId,
+                    doctorId = doctor.id,
+                    patientUserId = patientUserId,
+                    patientDisplayName = patientDisplayName,
+                    linkedAt = now,
+                    createdAt = now,
+                    updatedAt = now,
+                    status = LinkStatus.ACTIVE.name,
+                    consentGrantedAt = now,
                 )
+                patientLinkDao.upsert(link)
                 auditLogger.record(
                     doctorUserId = doctor.userId,
                     patientUserId = patientUserId,
@@ -209,6 +248,11 @@ class RedeemInviteViewModel @Inject constructor(
                     detail = DETAIL_GRANTED_BY_PATIENT,
                     now = now,
                 )
+                // Publish the link so it reaches the doctor's device. Without
+                // this the patient believes they are connected and the doctor's
+                // list stays empty — the consent would be real locally and
+                // invisible to the person it was granted to.
+                sync.pushPatientLink(link, doctor.userId)
                 RedeemUiState.Linked(doctor.fullName, alreadyHadAccess = false)
             }
 

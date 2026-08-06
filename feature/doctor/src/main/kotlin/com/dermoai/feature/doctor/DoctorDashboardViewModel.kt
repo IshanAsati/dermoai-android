@@ -29,6 +29,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.dermoai.core.data.sync.toEntity
+import com.dermoai.core.data.sync.DoctorSyncRepository
+import com.dermoai.core.common.result.AppResult
 
 /**
  * What the triage inbox can be in.
@@ -83,6 +86,7 @@ class DoctorDashboardViewModel @Inject constructor(
     private val scanPredictionDao: ScanPredictionDao,
     private val computeAdherence: ComputeAdherenceUseCase,
     private val computeTrend: ComputeTrendUseCase,
+    private val sync: DoctorSyncRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<DoctorDashboardUiState>(DoctorDashboardUiState.Loading)
@@ -100,6 +104,16 @@ class DoctorDashboardViewModel @Inject constructor(
         // leave the previous collector alive and stack one more on every visit.
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
+            // Patients consent on their own device, so the link is created over
+            // there. Pull before observing, otherwise the doctor's list shows
+            // only patients who happened to link on this phone — which is no
+            // list at all in a real consultation.
+            //
+            // Fire-and-forget on purpose: the Room flow below is the source of
+            // truth for the UI, so a failed pull just means the screen shows
+            // what this device already knows, which is the offline behaviour.
+            refreshFromBackend(userId)
+
             doctorProfileDao.observeByUserId(userId)
                 .flatMapLatest { entity ->
                     val profile = entity?.toDomain()
@@ -112,6 +126,29 @@ class DoctorDashboardViewModel @Inject constructor(
                     }
                 }
                 .collect { _state.value = it }
+        }
+    }
+
+    /**
+     * Pulls links this doctor's patients created elsewhere into local Room.
+     *
+     * Every failure is swallowed: no backend configured, no session, no signal.
+     * The dashboard is driven by the Room flow either way, so the worst case is
+     * a list that is merely stale rather than a screen that errors.
+     */
+    private suspend fun refreshFromBackend(userId: String) {
+        val profile = doctorProfileDao.getByUserId(userId) ?: return
+        sync.ensureSession()
+        val remote = (sync.pullPatientLinksForDoctor(profile.id) as? AppResult.Success)
+            ?.data?.value.orEmpty()
+        if (remote.isEmpty()) return
+        val now = System.currentTimeMillis()
+        runCatching {
+            // Owner is the doctor's account, matching the table convention the
+            // local write path uses — otherwise the same link would arrive with
+            // a different userId than the one written on this device and show up
+            // twice.
+            patientLinkDao.upsertAll(remote.map { it.toEntity(userId, now) })
         }
     }
 

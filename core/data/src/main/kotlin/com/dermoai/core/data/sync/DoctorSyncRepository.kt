@@ -474,6 +474,34 @@ class DoctorSyncRepository @Inject constructor(
         }
 
     /**
+     * Makes sure there is *some* Appwrite session, creating an anonymous one if
+     * not, and returns its user id (null when local-only or unreachable).
+     *
+     * Without this every write returns 401: the client authenticates as whatever
+     * session the Account API established, and nothing in the app was ever
+     * establishing one. Sign-in is local (the Firebase config is a placeholder),
+     * so there are no credentials to forward — an anonymous session is what is
+     * actually available.
+     *
+     * The trade-off, stated plainly because it affects what the backend can
+     * enforce: an anonymous identity is per-install and not tied to the local
+     * account. Reinstalling gets a new Appwrite user, and a doctor signing in on
+     * a second device is, to Appwrite, a different person. Document ACLs written
+     * for one anonymous id therefore do not follow the human. Making identity
+     * durable means creating real Appwrite accounts during sign-up, which is the
+     * right next step and is not done here.
+     */
+    suspend fun ensureSession(): AppResult<String?> = withContext(dispatchers.io) {
+        if (config.isLocalOnlyMode) return@withContext AppResult.Success(null)
+        attempt(degraded = { null }) {
+            resolveSessionUserId() ?: run {
+                clients.account?.createAnonymousSession()
+                resolveSessionUserId()
+            }
+        }
+    }
+
+    /**
      * Runs [block], converting every expected failure into a degraded success.
      *
      * [CancellationException] is re-thrown deliberately: swallowing it would

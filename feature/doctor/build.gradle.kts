@@ -33,6 +33,10 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:ui"))
     implementation(project(":core:database"))
+    // Cross-device linking: an invite generated on the doctor's phone has to be
+    // findable from the patient's. Everything degrades to local-only when the
+    // backend is unconfigured or unreachable.
+    implementation(project(":core:data"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)

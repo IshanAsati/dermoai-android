@@ -23,6 +23,7 @@ import java.security.SecureRandom
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.random.asKotlinRandom
+import com.dermoai.core.data.sync.DoctorSyncRepository
 
 sealed interface InviteUiState {
     data object Loading : InviteUiState
@@ -55,6 +56,7 @@ sealed interface InviteUiState {
 class InvitePatientViewModel @Inject constructor(
     private val doctorProfileDao: DoctorProfileDao,
     private val doctorInviteDao: DoctorInviteDao,
+    private val sync: DoctorSyncRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<InviteUiState>(InviteUiState.Loading)
@@ -133,22 +135,29 @@ class InvitePatientViewModel @Inject constructor(
             }
             val now = System.currentTimeMillis()
             val id = UUID.randomUUID().toString()
-            val result = runCatching {
-                doctorInviteDao.upsert(
-                    DoctorInviteEntity(
-                        id = id,
-                        userId = doctor.userId,
-                        doctorId = doctor.id,
-                        code = code,
-                        createdAt = now,
-                        updatedAt = now,
-                        expiresAt = now + _expiryDays.value * DAY_MS,
-                        maxUses = _maxUses.value,
-                    ),
-                )
-            }
+            val entity = DoctorInviteEntity(
+                id = id,
+                userId = doctor.userId,
+                doctorId = doctor.id,
+                code = code,
+                createdAt = now,
+                updatedAt = now,
+                expiresAt = now + _expiryDays.value * DAY_MS,
+                maxUses = _maxUses.value,
+            )
+            val result = runCatching { doctorInviteDao.upsert(entity) }
             if (result.isSuccess) {
                 _selectedInviteId.value = id
+                // Publish so the patient's phone can find this code. A code that
+                // only exists in this device's Room is unredeemable anywhere
+                // else, which is precisely the bug this fixes.
+                //
+                // Deliberately after the local write and deliberately not
+                // failing the invite: the code is valid locally regardless, and
+                // a doctor with no signal should still get a code they can read
+                // out. The push returns a degraded success when offline.
+                sync.ensureSession()
+                sync.pushDoctorInvite(entity, doctor.userId)
             } else {
                 _generationFailed.value = true
             }
