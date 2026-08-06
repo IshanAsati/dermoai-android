@@ -197,13 +197,18 @@ class RedeemInviteViewModelTest {
     }
 
     @Test
-    fun `checkCode when code does not exist returns RedeemRejection NotFound`() = runTest {
+    fun `checkCode when code does not exist locally and backend is unconfigured returns Offline`() = runTest {
+        // FakeLocalOnlyAppwriteConfig means the server is never actually asked
+        // — PullOutcome.fromServer is false — so this must not be reported as
+        // "no such code" (that claims the server was consulted and said no).
+        // It is reported as Offline/unreachable, which is the honest answer:
+        // this build has no backend to check.
         viewModel.onCodeChanged("X8S36V8R")
         viewModel.checkCode()
         testDispatcher.scheduler.advanceUntilIdle()
         val state = viewModel.state.value
         assertTrue(state is RedeemUiState.Entry)
-        assertEquals(RedeemRejection.NotFound, (state as RedeemUiState.Entry).rejection)
+        assertEquals(RedeemRejection.Offline, (state as RedeemUiState.Entry).rejection)
     }
 
     @Test

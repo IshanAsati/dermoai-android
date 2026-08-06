@@ -36,6 +36,10 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
     implementation(project(":core:ui"))
+    // Doctor sign-up pushes the fresh credential row to Appwrite so it is
+    // resolvable from a patient's device the moment an invite is issued —
+    // see DoctorSignUpViewModel.persistDoctorClaim.
+    implementation(project(":core:data"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)

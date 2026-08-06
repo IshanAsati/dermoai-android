@@ -104,6 +104,16 @@
     <string name="doctor_invite_copied">Code copied</string>
     <string name="doctor_invite_error">Could not create a code. Try again.</string>
 
+    <!-- Invite sync status: whether the code above has actually reached the
+         server, so a doctor is not reading out a code that only exists on
+         this device. -->
+    <string name="doctor_invite_sync_syncing">Sending this code to the server…</string>
+    <string name="doctor_invite_sync_synced">Synced — this code works on the patient\'s phone too.</string>
+    <string name="doctor_invite_sync_not_synced_offline">No connection. This code only works if the patient uses this same phone right now.</string>
+    <string name="doctor_invite_sync_not_synced_no_session">Not signed in to the server. This code only works on this phone.</string>
+    <string name="doctor_invite_sync_not_synced_other">This code has not reached the server. It only works on this phone for now.</string>
+    <string name="doctor_invite_sync_failed">Could not confirm the code reached the server. Try generating a new one, or use this phone directly.</string>
+
     <!-- Redeem (patient side) -->
     <string name="doctor_redeem_title">Connect with your doctor</string>
     <string name="doctor_redeem_subtitle">Type the 8-character code your doctor gave you.</string>
@@ -115,6 +125,13 @@
     <string name="doctor_redeem_not_found">No invite matches that code. Check each character with your doctor.</string>
     <string name="doctor_redeem_race">Someone else used the last spot on that code moments ago. Ask your doctor for a new one.</string>
     <string name="doctor_redeem_error">Something went wrong. Try again.</string>
+    <string name="doctor_redeem_offline">Could not reach the server to look up that code. Check your connection and try again.</string>
+    <string name="doctor_redeem_scan_qr">Scan QR code instead</string>
+    <string name="doctor_redeem_scan_title">Scan the doctor\'s QR code</string>
+    <string name="doctor_redeem_scan_hint">Point your camera at the QR code on the doctor\'s screen.</string>
+    <string name="doctor_redeem_scan_permission_body">Camera access is needed to scan the code. You can still type it in instead.</string>
+    <string name="doctor_redeem_scan_grant">Grant camera access</string>
+    <string name="doctor_redeem_scan_cancel">Type the code instead</string>
 
     <string name="doctor_consent_title">What %1$s will be able to see</string>
     <string name="doctor_consent_unverified">This clinician has not been verified yet.</string>

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dermoai.core.common.result.AppResult
 import com.dermoai.core.common.ui.UiState
+import com.dermoai.core.data.sync.DoctorSyncRepository
 import com.dermoai.core.database.dao.DoctorProfileDao
 import com.dermoai.core.database.dao.UserProfileDao
 import com.dermoai.core.database.entity.DoctorProfileEntity
@@ -40,6 +41,7 @@ class DoctorSignUpViewModel @Inject constructor(
     private val signUpWithEmail: SignUpWithEmailUseCase,
     private val doctorProfileDao: DoctorProfileDao,
     private val userProfileDao: UserProfileDao,
+    private val sync: DoctorSyncRepository,
     authRepository: AuthRepository,
 ) : ViewModel() {
 
@@ -171,24 +173,32 @@ class DoctorSignUpViewModel @Inject constructor(
     private suspend fun persistDoctorClaim(user: AuthUser, form: DoctorSignUpFormState) {
         val now = System.currentTimeMillis()
         val existing = doctorProfileDao.getByUserId(user.id)
-        doctorProfileDao.upsert(
-            DoctorProfileEntity(
-                id = existing?.id ?: UUID.randomUUID().toString(),
-                userId = user.id,
-                fullName = form.fullName.trim(),
-                qualifications = DoctorProfileEntity.encodeQualifications(form.qualifications),
-                registrationNumber = form.registrationNumber.trim(),
-                specialty = form.specialty.trim(),
-                institution = form.institution.trim(),
-                yearsExperience = form.yearsExperienceValue ?: 0,
-                createdAt = existing?.createdAt ?: now,
-                updatedAt = now,
-                // PENDING, never VERIFIED. A human decides the rest.
-                verificationStatus = VerificationStatus.PENDING.name,
-                verifiedAt = null,
-                bio = form.bio.trim(),
-            ),
+        val doctorProfile = DoctorProfileEntity(
+            id = existing?.id ?: UUID.randomUUID().toString(),
+            userId = user.id,
+            fullName = form.fullName.trim(),
+            qualifications = DoctorProfileEntity.encodeQualifications(form.qualifications),
+            registrationNumber = form.registrationNumber.trim(),
+            specialty = form.specialty.trim(),
+            institution = form.institution.trim(),
+            yearsExperience = form.yearsExperienceValue ?: 0,
+            createdAt = existing?.createdAt ?: now,
+            updatedAt = now,
+            // PENDING, never VERIFIED. A human decides the rest.
+            verificationStatus = VerificationStatus.PENDING.name,
+            verifiedAt = null,
+            bio = form.bio.trim(),
         )
+        doctorProfileDao.upsert(doctorProfile)
+
+        // Best-effort, never blocking sign-up on network: a doctor with no
+        // signal still gets their local claim recorded and can generate a
+        // code, which InvitePatientViewModel retries pushing before sharing
+        // one. Awaited (not fire-and-forget) so the very first invite screen
+        // this doctor opens has the shortest possible window where the
+        // profile exists locally but not on the server.
+        sync.ensureSession()
+        sync.pushDoctorProfile(doctorProfile)
 
         val profile = userProfileDao.getById(user.id)
         userProfileDao.upsert(

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -26,6 +27,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -78,6 +82,12 @@ fun RedeemInviteScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val code by viewModel.code.collectAsStateWithLifecycle()
 
+    // Fallback pairing path: a scanned QR feeds the exact same
+    // onCodeChanged/checkCode path a typed code does — see QrScanScreen's doc.
+    // Local to this screen rather than view-model state because it is pure
+    // navigation within one flow, not a redemption outcome.
+    var showScanner by remember { mutableStateOf(false) }
+
     Column(modifier = modifier.fillMaxSize()) {
         GradientHeader(
             title = stringResource(R.string.doctor_redeem_title),
@@ -85,39 +95,52 @@ fun RedeemInviteScreen(
         )
         MedicalDisclaimerBar()
 
-        Column(
-            Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            when (val s = state) {
-                is RedeemUiState.Entry -> CodeEntry(
-                    code = code,
-                    rejection = s.rejection,
-                    canSubmit = viewModel.isCodeComplete,
-                    onCodeChanged = viewModel::onCodeChanged,
-                    onSubmit = viewModel::checkCode,
-                    onBack = onBack,
-                )
+        if (showScanner) {
+            QrScanScreen(
+                modifier = Modifier.weight(1f),
+                onCodeScanned = { scannedCode ->
+                    showScanner = false
+                    viewModel.onCodeChanged(scannedCode)
+                    viewModel.checkCode()
+                },
+                onCancel = { showScanner = false },
+            )
+        } else {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                when (val s = state) {
+                    is RedeemUiState.Entry -> CodeEntry(
+                        code = code,
+                        rejection = s.rejection,
+                        canSubmit = viewModel.isCodeComplete,
+                        onCodeChanged = viewModel::onCodeChanged,
+                        onSubmit = viewModel::checkCode,
+                        onScanQr = { showScanner = true },
+                        onBack = onBack,
+                    )
 
-                is RedeemUiState.Checking -> Busy(stringResource(R.string.doctor_redeem_checking))
+                    is RedeemUiState.Checking -> Busy(stringResource(R.string.doctor_redeem_checking))
 
-                is RedeemUiState.Consent -> ConsentPanel(
-                    invite = s.invite,
-                    doctor = s.doctor,
-                    onAgree = { viewModel.grantConsent(patientUserId, patientDisplayName) },
-                    onDecline = viewModel::declineConsent,
-                )
+                    is RedeemUiState.Consent -> ConsentPanel(
+                        invite = s.invite,
+                        doctor = s.doctor,
+                        onAgree = { viewModel.grantConsent(patientUserId, patientDisplayName) },
+                        onDecline = viewModel::declineConsent,
+                    )
 
-                is RedeemUiState.Linking -> Busy(stringResource(R.string.doctor_redeem_linking))
+                    is RedeemUiState.Linking -> Busy(stringResource(R.string.doctor_redeem_linking))
 
-                is RedeemUiState.Linked -> LinkedPanel(
-                    doctorName = s.doctorName,
-                    alreadyHadAccess = s.alreadyHadAccess,
-                    onDone = onLinked,
-                )
+                    is RedeemUiState.Linked -> LinkedPanel(
+                        doctorName = s.doctorName,
+                        alreadyHadAccess = s.alreadyHadAccess,
+                        onDone = onLinked,
+                    )
+                }
             }
         }
     }
@@ -142,6 +165,7 @@ private fun CodeEntry(
     canSubmit: Boolean,
     onCodeChanged: (String) -> Unit,
     onSubmit: () -> Unit,
+    onScanQr: () -> Unit,
     onBack: () -> Unit,
 ) {
     OutlinedTextField(
@@ -178,6 +202,12 @@ private fun CodeEntry(
         Text(stringResource(R.string.doctor_redeem_check))
     }
 
+    NeuButton(onClick = onScanQr, modifier = Modifier.fillMaxWidth()) {
+        Icon(Icons.Outlined.QrCodeScanner, null)
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(R.string.doctor_redeem_scan_qr))
+    }
+
     NeuButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
         Icon(Icons.AutoMirrored.Outlined.ArrowBack, null)
         Spacer(Modifier.width(8.dp))
@@ -199,6 +229,7 @@ private fun RejectionBanner(rejection: RedeemRejection) {
         is RedeemRejection.Unusable -> rejection.reason
         is RedeemRejection.LostRace -> stringResource(R.string.doctor_redeem_race)
         is RedeemRejection.Failed -> stringResource(R.string.doctor_redeem_error)
+        is RedeemRejection.Offline -> stringResource(R.string.doctor_redeem_offline)
     }
     NeuSurface(
         modifier = Modifier.fillMaxWidth(),
