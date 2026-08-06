@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.FlashOff
 import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -123,6 +124,8 @@ class ScanViewModel @Inject constructor(
     private val ruleEngine: RuleBasedFilterEngine,
 ) : ViewModel() {
 
+    private val imageQualityChecker = ImageQualityChecker()
+
     var capturedPhotoPath by mutableStateOf<String?>(null)
         private set
     var inferenceState by mutableStateOf<InferenceUiState>(InferenceUiState.Idle)
@@ -163,6 +166,15 @@ class ScanViewModel @Inject constructor(
 
     fun setPhotoPath(path: String) {
         capturedPhotoPath = path
+    }
+
+    /**
+     * Runs the image quality check on a saved photo. The checker decodes a
+     * downsampled copy (never the full-resolution bitmap) and fails open on
+     * unreadable files, so the existing inference error state handles those.
+     */
+    suspend fun assessImage(photoPath: String): ImageQualityReport = withContext(Dispatchers.Default) {
+        imageQualityChecker.assessFile(photoPath)
     }
 
     fun cropAndSave(sourcePath: String, rect: CropRect, rotation: Float): String {
@@ -740,6 +752,20 @@ fun ScanReviewScreen(
 ) {
     var cropRect by remember { mutableStateOf(CropRect(0.15f, 0.2f, 0.7f, 0.5f)) }
     var rotation by remember { mutableFloatStateOf(0f) }
+    val scope = rememberCoroutineScope()
+
+    // Image quality gate: set when the cropped photo fails the quality check.
+    var qualityWarning by remember { mutableStateOf<ImageQualityReport?>(null) }
+    var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
+    // Guards against double-taps while the (fast) quality check is running.
+    var assessing by remember { mutableStateOf(false) }
+
+    fun confirmAndAnalyze(cropped: String) {
+        qualityWarning = null
+        pendingPhotoPath = null
+        assessing = false
+        onUsePhoto(cropped)
+    }
 
     val nudge = 0.03f
     fun wider() = cropRect.copy(width = (cropRect.width + nudge).coerceAtMost(0.95f - cropRect.offsetX))
@@ -801,19 +827,90 @@ fun ScanReviewScreen(
         }
 
         MedicalDisclaimerBar()
+
+        qualityWarning?.let { report ->
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
+                color = DermoColors.Bloom,
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Outlined.Warning,
+                            null,
+                            tint = DermoColors.AmberText,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Improve photo quality",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = DermoColors.AmberText,
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        report.issues.joinToString(" · ") { it.message },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = DermoColors.AmberText,
+                    )
+                    Text(
+                        report.issues.first().guidance,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DermoColors.AmberText,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        NeuButton(
+                            onClick = { pendingPhotoPath?.let { confirmAndAnalyze(it) } },
+                            modifier = Modifier.weight(1f),
+                            containerColor = DermoColors.TealAccent,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ) { Text("Analyze anyway") }
+                        OutlinedNeuButton(
+                            onClick = {
+                                qualityWarning = null
+                                pendingPhotoPath = null
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Adjust crop") }
+                    }
+                }
+            }
+        }
+
         Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedNeuButton(onRetake, Modifier.weight(1f)) { Text("Retake") }
             NeuButton(
                 onClick = {
+                    if (assessing) return@NeuButton
+                    assessing = true
                     val cropped = try {
                         viewModel.cropAndSave(photoPath, cropRect, rotation)
                     } catch (_: Exception) { photoPath }
-                    onUsePhoto(cropped)
+                    scope.launch {
+                        try {
+                            val report = viewModel.assessImage(cropped)
+                            if (report.issues.isEmpty()) {
+                                confirmAndAnalyze(cropped)
+                            } else {
+                                pendingPhotoPath = cropped
+                                qualityWarning = report
+                                assessing = false
+                            }
+                        } catch (_: Exception) {
+                            // Never trap the user on a stuck button — fall back to analyzing.
+                            assessing = false
+                            confirmAndAnalyze(cropped)
+                        }
+                    }
                 },
                 modifier = Modifier.weight(1f),
+                enabled = !assessing,
                 containerColor = DermoColors.TealAccent,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) { Text("Analyze") }
+            ) { Text(if (assessing) "Checking…" else "Analyze") }
         }
     }
 }
