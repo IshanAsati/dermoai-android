@@ -4,7 +4,13 @@ Written 2026-08-06, immediately before a presentation. Read this first; it is
 current, unlike `AGENTS.md`, which describes the pre-gate ML pipeline.
 
 Branch: `feat/doctor-dashboard` in `C:\Users\aarus\Downloads\dermoai-android`
-(a fork of `IshanAsati/dermoai-android`; PR #1 carries the ML work).
+(a fork of `IshanAsati/dermoai-android`; PR #1, carrying the ML work, is merged
+upstream). Rebased onto `upstream/main` on 2026-08-07 to pick up Ishan's
+image-quality capture gate (`e03b5dc`) and website widgets — clean rebase, no
+conflicts, because nothing in this branch's 6 commits touches `ScanScreens.kt`
+(the capture gate does; the EXIF/crop work predates the fork point). 146 unit
+tests pass post-rebase across `:core:domain`, `:core:data`, `:feature:doctor`,
+`:feature:scan` (13 of those are the capture gate's own `ImageQualityTest`).
 
 Build: `./gradlew :app:assembleDebug -Dorg.gradle.java.home="C:/Program Files/Java/jdk-22"`
 (`gradle.properties` in the *other* repo hardcodes a Linux JDK path; this one is fine.)
