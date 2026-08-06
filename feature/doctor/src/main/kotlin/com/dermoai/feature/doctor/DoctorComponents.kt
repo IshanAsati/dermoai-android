@@ -182,7 +182,7 @@ internal fun TrendChip(trend: PatientTrend, modifier: Modifier = Modifier) {
     val (icon, color, label) = when {
         !trend.isConfident -> Triple(
             Icons.Outlined.Remove,
-            DermoColors.Slate,
+            MaterialTheme.colorScheme.onSurfaceVariant,
             stringResource(R.string.doctor_trend_unknown),
         )
         trend.direction == TrendDirection.WORSENING -> Triple(
@@ -197,7 +197,7 @@ internal fun TrendChip(trend: PatientTrend, modifier: Modifier = Modifier) {
         )
         else -> Triple(
             Icons.Outlined.Remove,
-            DermoColors.Slate,
+            MaterialTheme.colorScheme.onSurfaceVariant,
             stringResource(R.string.doctor_trend_stable),
         )
     }
@@ -231,7 +231,7 @@ internal fun DoctorMessage(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
-    tint: Color = DermoColors.Slate,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     action: (@Composable () -> Unit)? = null,
 ) {
     Box(modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -290,7 +290,7 @@ internal fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
-        color = DermoColors.Ink,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier,
     )
 }

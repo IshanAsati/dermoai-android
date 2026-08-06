@@ -391,7 +391,7 @@ private fun DoctorTextField(
                     color = if (error != null) {
                         MaterialTheme.colorScheme.error
                     } else {
-                        DermoColors.Slate
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
             }

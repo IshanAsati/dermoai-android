@@ -117,7 +117,7 @@ fun BreathingScreen(
         Row(Modifier.fillMaxWidth()) { IconButton(onClick = { viewModel.stop(); onBack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } }
         Spacer(Modifier.height(20.dp))
         Text("Box Breathing", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Inhale 4s · Hold 4s · Exhale 4s · Hold 4s", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate)
+        Text("Inhale 4s · Hold 4s · Exhale 4s · Hold 4s", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.weight(1f))
 
         Box(Modifier.size(220.dp), contentAlignment = Alignment.Center) {
@@ -151,7 +151,7 @@ fun BreathingScreen(
                         contentDescription = "$phaseLabel. Cycle ${cycleShown} of ${BreathingViewModel.MAX_CYCLES}"
                     },
                 )
-                Text("Cycle $cycleShown of ${BreathingViewModel.MAX_CYCLES}", style = MaterialTheme.typography.bodySmall, color = DermoColors.Slate)
+                Text("Cycle $cycleShown of ${BreathingViewModel.MAX_CYCLES}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (s.isComplete) {
                     Spacer(Modifier.height(8.dp))
                     Text("Session complete — great job!", style = MaterialTheme.typography.labelMedium, color = DermoColors.SageText)

@@ -140,7 +140,7 @@ fun DoctorDashboardScreen(
                         Text(
                             text = stringResource(R.string.doctor_dashboard_ranked_note),
                             style = MaterialTheme.typography.bodySmall,
-                            color = DermoColors.Slate,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     items(s.rows, key = { it.patientUserId }) { row ->
@@ -225,7 +225,7 @@ private fun PatientTriageCard(row: TriageRow, onClick: () -> Unit) {
                     Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                     contentDescription = stringResource(R.string.doctor_open_patient, row.displayName),
                     Modifier.size(24.dp),
-                    tint = DermoColors.Slate,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 

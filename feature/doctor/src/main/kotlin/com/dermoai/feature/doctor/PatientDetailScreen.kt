@@ -149,12 +149,12 @@ fun PatientDetailScreen(
                     item {
                         NeuSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
                             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.EventBusy, null, tint = DermoColors.Slate)
+                                Icon(Icons.Outlined.EventBusy, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.width(12.dp))
                                 Text(
                                     stringResource(R.string.doctor_patient_no_scans),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = DermoColors.Slate,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -219,7 +219,7 @@ private fun AdherenceCard(adherence: PatientAdherence) {
             Text(
                 stringResource(R.string.doctor_last_scan, formatDate(dateFormat, it)),
                 style = MaterialTheme.typography.labelMedium,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -253,14 +253,14 @@ private fun TrendCard(trend: PatientTrend) {
             Text(
                 text = PatientTrend.DISCLAIMER,
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Spacer(Modifier.height(8.dp))
         Text(
             stringResource(R.string.doctor_patient_trend_basis, trend.basisScans),
             style = MaterialTheme.typography.labelMedium,
-            color = DermoColors.Slate,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -291,7 +291,7 @@ private fun PatientScanCard(scan: PatientScanRow) {
                         Icon(
                             Icons.Outlined.Image,
                             stringResource(R.string.doctor_scan_no_photo),
-                            tint = DermoColors.Slate,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -322,7 +322,7 @@ private fun PatientScanCard(scan: PatientScanRow) {
                             Text(
                                 stringResource(R.string.doctor_confidence, (it * 100).roundToInt()),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = DermoColors.Slate,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(Modifier.width(8.dp))
                         }

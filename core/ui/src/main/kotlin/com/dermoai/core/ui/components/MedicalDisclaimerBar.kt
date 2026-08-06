@@ -18,7 +18,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.dermoai.core.common.MedicalDisclaimer
 import com.dermoai.core.ui.R
-import com.dermoai.core.ui.theme.DermoColors
 
 /**
  * Medical disclaimer as a neumorphic inset well (carved, not outlined).
@@ -39,12 +38,12 @@ fun MedicalDisclaimerBar(modifier: Modifier = Modifier) {
         ) {
             Icon(
                 Icons.Outlined.Info, contentDescription = null,
-                Modifier.padding(end = 8.dp), tint = DermoColors.Slate,
+                Modifier.padding(end = 8.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = stringResource(R.string.medical_disclaimer),
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

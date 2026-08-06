@@ -130,7 +130,7 @@ fun InvitePatientScreen(
                             Text(
                                 stringResource(R.string.doctor_invite_none),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = DermoColors.Slate,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     } else {
@@ -234,7 +234,7 @@ private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
             text = label,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) DermoColors.TealText else DermoColors.Slate,
+            color = if (selected) DermoColors.TealText else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -281,12 +281,12 @@ private fun InviteCodeCard(invite: DoctorInvite) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Icon(Icons.Outlined.QrCode2, null, tint = DermoColors.Slate)
+                        Icon(Icons.Outlined.QrCode2, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(8.dp))
                         Text(
                             stringResource(R.string.doctor_invite_qr_failed),
                             style = MaterialTheme.typography.bodySmall,
-                            color = DermoColors.Slate,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -296,7 +296,7 @@ private fun InviteCodeCard(invite: DoctorInvite) {
             Text(
                 stringResource(R.string.doctor_invite_qr_caption),
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(12.dp))
@@ -350,7 +350,7 @@ private fun InviteRow(
                 Text(
                     InviteCodes.formatForDisplay(invite.code),
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (usable) DermoColors.TealText else DermoColors.Slate,
+                    color = if (usable) DermoColors.TealText else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     stringResource(

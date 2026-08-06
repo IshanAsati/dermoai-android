@@ -152,9 +152,9 @@ private fun EmptyNote(icon: ImageVector, text: String) {
         shape = RoundedCornerShape(16.dp),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = DermoColors.Slate)
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(12.dp))
-            Text(text, style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate)
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -175,7 +175,7 @@ private fun LinkedDoctorCard(row: LinkedDoctorRow, onRevoke: () -> Unit) {
                 Text(
                     row.subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = DermoColors.Slate,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -245,7 +245,7 @@ private fun AccessLogCard(entry: AccessLogRow) {
     }
     NeuSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, Modifier.size(20.dp), tint = DermoColors.Slate)
+            Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -253,7 +253,7 @@ private fun AccessLogCard(entry: AccessLogRow) {
                         ?: stringResource(R.string.doctor_privacy_unknown_doctor),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Text(label, style = MaterialTheme.typography.bodySmall, color = DermoColors.Slate)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
                 formatDate(dateTimeFormat, entry.at),
