@@ -20,6 +20,8 @@ Build: `./gradlew :app:assembleDebug -Dorg.gradle.java.home="C:/Program Files/Ja
 | Appwrite backend | Provisioned: 5 collections, 38 attributes, 9 indexes. |
 | Doctor → Appwrite push | **Confirmed working** — invite `X8S36V8R` reached the server. |
 | Patient redeem across devices | **Untested.** This is the open item. |
+| Reaching the dashboard on-device | Fixed — debug approve button, §3. |
+| Doctor sign-up discoverability | Fixed — also linked from the sign-in screen. |
 
 Two phones, both on the current build:
 `1c3aa67a` = Xiaomi 25057RN09I, Android 15 — **doctor** (`doctorh@gmail.com`, VERIFIED)
@@ -43,9 +45,18 @@ order: no session (`blocked: no Appwrite session`), a 401 naming permissions
 
 ## 3. Verification is manual, by design
 
-Sign-up writes `PENDING`; nothing in the app produces `VERIFIED`. To unlock a
-doctor dashboard for a demo, edit the device DB (the app must be stopped first,
-and `/sdcard` is not readable by `run-as` — use `/data/local/tmp`):
+Sign-up writes `PENDING`; nothing in a **release** build produces `VERIFIED` —
+that is the rule and it stays.
+
+On a **debug** build, `DoctorStatusScreen` now shows *"Approve this claim (debug
+only)"*. It is guarded by `BuildConfig.DEBUG` at the call site, so it is not
+composed in a release build, and it no-ops unless a claim is already on file.
+**That is the supported way to reach the dashboard.** Tap it and navigation moves
+to the dashboard on its own — the guard keys on `isVerifiedDoctor`.
+
+The adb recipe below is only needed on a release build or when the app will not
+start (the app must be stopped first, and `/sdcard` is not readable by `run-as` —
+use `/data/local/tmp`):
 
 ```bash
 adb -s <dev> shell am force-stop com.dermoai
@@ -59,8 +70,19 @@ adb -s <dev> push db /data/local/tmp/_db && adb -s <dev> shell \
    /data/data/com.dermoai/databases/dermoai.db'"
 ```
 
-A debug-only in-app toggle would be ~20 lines and is the obvious next
-convenience. It was offered and not built.
+## 3a. Installing on the Xiaomi (MIUI) — read before debugging an install
+
+`INSTALL_FAILED_USER_RESTRICTED: Install canceled by user` is MIUI refusing, not
+a problem with the APK. It means **Developer options → USB debugging (Security
+settings)** is off. The same toggle also gates `adb shell input` and
+`settings put`, so when installs fail, UI automation is failing too. Turning it
+on needs a Xiaomi account signed in and a SIM in the phone, and MIUI resets it
+after some updates.
+
+**Always install with `adb install -r`.** Uninstall-then-install, or installing
+by tapping the APK in a file manager, wipes `/data/data/com.dermoai` — which is
+every account, scan and link on the device. That is how two working doctor
+accounts were lost on 2026-08-06.
 
 ## 4. Known limitations — say these out loud, do not let a judge find them
 
@@ -92,14 +114,16 @@ a different principal.
 ## 5. Highest-value next steps, in order
 
 1. **Finish testing patient redemption** (§2). Everything else is polish.
+   Blocked on §3a until the Xiaomi accepts an install again.
 2. **Real Appwrite accounts at sign-up** instead of anonymous sessions. This one
    change fixes the ACL problem, the enumerability problem and the per-install
    identity problem together — they are all the same root cause.
 3. **Healthy-gate photos from 2–3 other people**, ideally different skin tones.
    Cheapest possible credibility win; retrain with
    `tools/ml/train_healthy_gate.py`.
-4. **Tests for the sync layer.** The agent that wrote it was cut off before
-   writing any; it is the only substantial code here with zero coverage.
+4. ~~Tests for the sync layer.~~ Done — `DoctorSyncRepositoryTest` and
+   `RedeemInviteViewModelTest`. 133 tests pass across `:core:domain`,
+   `:core:data` and `:feature:doctor`.
 5. An Appwrite Function mediating invite lookup and revocation — the correct fix
    for §4's read problem, and a real piece of engineering to talk about.
 
