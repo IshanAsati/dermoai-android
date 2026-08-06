@@ -149,6 +149,30 @@ object SyncPermissions {
      * rather than hidden because a reader of this function deserves to know they
      * are looking at the soft spot.
      */
+    /**
+     * Writer keeps control; any signed-in user can read.
+     *
+     * Used where the counterparty's Appwrite identity is genuinely unknown to
+     * the writing device — a patient linking to a doctor has the doctor's *local*
+     * account id and no way to learn their Appwrite `$id`. Appwrite only accepts
+     * `any`, `users`, or the session itself in an ACL, so naming the other party
+     * is not an option and `users` is the only thing that makes the row readable
+     * by the person it concerns.
+     *
+     * The cost, stated plainly: every signed-in user can read every row in a
+     * collection using this. For `patient_links` that discloses which patient is
+     * linked to which doctor, and when. It is the same enumerability trade
+     * already documented for invite codes, and it is why the honest answer about
+     * this backend is "consent is enforced for writes, reads are collection-wide".
+     * Closing it needs server-side mediation (an Appwrite Function) or real
+     * per-user accounts so the counterparty can be named.
+     */
+    fun sessionOwnedReadableByUsers(sessionUserId: String): List<String> = listOf(
+        Permission.read(Role.users()),
+        Permission.update(Role.user(sessionUserId)),
+        Permission.delete(Role.user(sessionUserId)),
+    )
+
     fun doctorInvitePermissions(doctorUserId: String): List<String> = listOf(
         Permission.read(Role.users()),
         Permission.update(Role.user(doctorUserId)),

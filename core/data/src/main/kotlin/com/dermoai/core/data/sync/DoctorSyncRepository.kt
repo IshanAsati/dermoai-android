@@ -97,13 +97,15 @@ class DoctorSyncRepository @Inject constructor(
     // ── doctor_profiles ──────────────────────────────────────────────────────
 
     suspend fun pushDoctorProfile(entity: DoctorProfileEntity): AppResult<PushOutcome> =
-        push(entity.userId) { databases, _ ->
+        push(entity.userId) { databases, sessionUserId ->
             val dto = entity.toDto()
             databases.upsert(
                 collectionId = AppwriteSchema.DOCTOR_PROFILES,
                 documentId = dto.id,
                 data = dto.toMap(),
-                permissions = SyncPermissions.doctorProfilePermissions(entity.userId),
+                // Ownership ACLs must name the *session*, not the local account: Appwrite
+                // only accepts any/users/self, and rejects the whole write otherwise.
+                permissions = SyncPermissions.doctorProfilePermissions(sessionUserId),
             )
         }
 
@@ -135,16 +137,18 @@ class DoctorSyncRepository @Inject constructor(
     suspend fun pushPatientLink(
         entity: PatientLinkEntity,
         doctorUserId: String = entity.userId,
-    ): AppResult<PushOutcome> = push(entity.userId) { databases, _ ->
+    ): AppResult<PushOutcome> = push(entity.userId) { databases, sessionUserId ->
         val dto = entity.toDto(doctorUserId = doctorUserId)
         databases.upsert(
             collectionId = AppwriteSchema.PATIENT_LINKS,
             documentId = dto.id,
             data = dto.toMap(),
-            permissions = SyncPermissions.patientLinkPermissions(
-                doctorUserId = dto.doctorUserId,
-                patientUserId = dto.patientUserId,
-            ),
+            // Both ids here are *local* accounts, and the doctor's Appwrite
+            // identity is unknown to the patient's device, so neither can be
+            // named in an ACL. Writer keeps write rights; readability is by
+            // `users` so the doctor's device can pull the link at all. See the
+            // enumerability note in SyncPermissions — same trade, same reason.
+            permissions = SyncPermissions.sessionOwnedReadableByUsers(sessionUserId),
         )
     }
 
@@ -188,13 +192,13 @@ class DoctorSyncRepository @Inject constructor(
     suspend fun pushDoctorInvite(
         entity: DoctorInviteEntity,
         doctorUserId: String = entity.userId,
-    ): AppResult<PushOutcome> = push(entity.userId) { databases, _ ->
+    ): AppResult<PushOutcome> = push(entity.userId) { databases, sessionUserId ->
         val dto = entity.toDto(doctorUserId = doctorUserId)
         databases.upsert(
             collectionId = AppwriteSchema.DOCTOR_INVITES,
             documentId = dto.id,
             data = dto.toMap(),
-            permissions = SyncPermissions.doctorInvitePermissions(dto.doctorUserId),
+            permissions = SyncPermissions.doctorInvitePermissions(sessionUserId),
         )
     }
 
@@ -401,11 +405,31 @@ class DoctorSyncRepository @Inject constructor(
             READ_USER_PERMISSION.matchEntire(raw.trim())?.groupValues?.getOrNull(1)
         }
 
+    /**
+     * @param ownerUserId the *local* account this row belongs to. It is carried
+     *   in the document's own fields, not asserted against the session.
+     *
+     * The gate used to require `ownerUserId == sessionUserId`, which is the
+     * right rule when the two are the same identity and a fatal one when they
+     * are not. Sign-in here is local, so the session is anonymous and its id
+     * lives in a different namespace from the local account id: the two can
+     * never be equal, so every push was blocked — and blocked *quietly*, because
+     * a blocked gate returns a degraded success that the UI cannot distinguish
+     * from being offline. That is the bug that made invite codes untravellable.
+     *
+     * What is lost by dropping the assertion: a device can now write a document
+     * whose `userId` field names someone else. The ACL still names the writing
+     * session, so it cannot grant *itself* access to another patient's data —
+     * but the field is no longer trustworthy as provenance. Restoring a real
+     * check means real Appwrite accounts created at sign-up, so that local and
+     * remote identity are the same thing.
+     */
     private suspend fun push(
         ownerUserId: String,
         block: suspend (Databases, String) -> Unit,
     ): AppResult<PushOutcome> = withContext(dispatchers.io) {
-        when (val gate = openGate(requiredOwnerUserId = ownerUserId)) {
+        @Suppress("UNUSED_PARAMETER")
+        when (val gate = openGate(requiredOwnerUserId = null)) {
             is Gate.Blocked -> AppResult.Success(PushOutcome.skipped(gate.reason))
             is Gate.Failed -> gate.error
             is Gate.Ready -> attempt(degraded = { PushOutcome.skipped(it) }) {
@@ -457,8 +481,21 @@ class DoctorSyncRepository @Inject constructor(
             return Gate.Failed(AppResult.Error(t, BACKEND_UNAVAILABLE_MESSAGE))
         }
 
-        if (sessionUserId.isNullOrBlank()) return Gate.Blocked(SyncSkipReason.NO_SESSION)
+        if (sessionUserId.isNullOrBlank()) {
+            android.util.Log.w(TAG, "blocked: no Appwrite session")
+            return Gate.Blocked(SyncSkipReason.NO_SESSION)
+        }
         if (requiredOwnerUserId != null && requiredOwnerUserId != sessionUserId) {
+            // Reachable only if a caller asks for an identity match. Nothing does
+            // any more, and the reason is worth recording: local account ids and
+            // Appwrite session ids are different namespaces, so requiring them to
+            // be equal blocked every single write — silently, because a Blocked
+            // gate returns a degraded *success* and never reaches the logging in
+            // attempt(). See the note on ownership in push().
+            android.util.Log.w(
+                TAG,
+                "blocked: identity mismatch (local=$requiredOwnerUserId session=$sessionUserId)",
+            )
             return Gate.Blocked(SyncSkipReason.IDENTITY_MISMATCH)
         }
         return Gate.Ready(databases, sessionUserId)
@@ -516,13 +553,25 @@ class DoctorSyncRepository @Inject constructor(
     } catch (e: CancellationException) {
         throw e
     } catch (e: AppwriteException) {
+        // Logged, not just converted. Degrading to a "success" is right for the
+        // UI — the feature keeps working offline — but it also means a genuine
+        // misconfiguration (wrong collection id, unregistered platform, missing
+        // permission) is indistinguishable from being offline, and produces a
+        // screen that looks fine while nothing is being written. Without this
+        // line the only symptom is an empty backend and no way to find out why.
+        android.util.Log.w(
+            TAG,
+            "Appwrite call failed: code=${e.code} type=${e.type} msg=${e.message}",
+        )
         when (val reason = skipReasonFor(e)) {
             null -> AppResult.Error(e, e.message?.takeIf { it.isNotBlank() } ?: BACKEND_UNAVAILABLE_MESSAGE)
             else -> AppResult.Success(degraded(reason))
         }
-    } catch (_: IOException) {
+    } catch (e: IOException) {
+        android.util.Log.w(TAG, "Appwrite unreachable: ${e.message}")
         AppResult.Success(degraded(SyncSkipReason.OFFLINE))
     } catch (t: Throwable) {
+        android.util.Log.w(TAG, "Appwrite call threw", t)
         AppResult.Error(t, BACKEND_UNAVAILABLE_MESSAGE)
     }
 
@@ -610,6 +659,9 @@ class DoctorSyncRepository @Inject constructor(
     )
 
     private companion object {
+        /** Filter with `adb logcat -s DoctorSync` when a link will not travel. */
+        const val TAG = "DoctorSync"
+
         const val HTTP_UNAUTHORIZED = 401
         const val HTTP_NOT_FOUND = 404
         const val HTTP_METHOD_NOT_ALLOWED = 405
