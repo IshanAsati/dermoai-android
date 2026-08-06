@@ -6,6 +6,7 @@ import com.dermoai.core.common.result.AppResult
 import com.dermoai.core.domain.ml.InferenceResult
 import com.dermoai.core.domain.ml.SkinInferenceEngine
 import com.dermoai.core.domain.model.ModelConfig
+import com.dermoai.core.ml.config.HealthyGateLoader
 import com.dermoai.core.ml.config.ModelConfigLoader
 import com.dermoai.core.ml.config.ModelLabelsLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,6 +24,7 @@ class TfliteSkinInferenceEngine @Inject constructor(
     @ApplicationContext private val context: Context,
     private val configLoader: ModelConfigLoader,
     private val labelsLoader: ModelLabelsLoader,
+    private val healthyGateLoader: HealthyGateLoader,
     private val interpreterHolder: TfliteInterpreterHolder,
 ) : SkinInferenceEngine {
 
@@ -36,7 +38,7 @@ class TfliteSkinInferenceEngine @Inject constructor(
         runCatching {
             config = configLoader.load()
             labels = labelsLoader.load()
-            interpreterHolder.load(context, config!!)
+            interpreterHolder.load(context, config!!, healthyGateLoader.load())
         }.fold(
             onSuccess = { AppResult.Success(Unit) },
             onFailure = { AppResult.Error(it, it.message) },

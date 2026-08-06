@@ -7,6 +7,6 @@
   "outputClasses": 12,
   "supportsHeatmap": false,
   "melanomaIndex": 5,
-  "melanomaLogitBias": -1.2,
+  "melanomaLogitBias": 0.0,
   "useTestTimeAugmentation": true
 }
