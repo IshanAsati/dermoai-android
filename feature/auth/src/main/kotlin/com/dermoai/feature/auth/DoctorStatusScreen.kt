@@ -80,6 +80,11 @@ fun DoctorStatusScreen(
                 session = session,
                 onSignOut = onSignOut,
                 onContactSupport = onContactSupport,
+                onDebugApprove = if (BuildConfig.DEBUG && session.profile != null) {
+                    { viewModel.approveOwnClaimForDebug() }
+                } else {
+                    null
+                },
             )
         }
     }
@@ -90,6 +95,13 @@ private fun DoctorStatusContent(
     session: DoctorSessionState,
     onSignOut: () -> Unit,
     onContactSupport: (() -> Unit)?,
+    /**
+     * Non-null only in a debug build. See
+     * [DoctorSessionViewModel.approveOwnClaimForDebug] for why this exists at
+     * all; the short version is that review is out-of-band, so without it the
+     * dashboard could only be reached by editing the device database over adb.
+     */
+    onDebugApprove: (() -> Unit)? = null,
 ) {
     val profile = session.profile
     Column(
@@ -161,6 +173,22 @@ private fun DoctorStatusContent(
         }
 
         Spacer(Modifier.height(4.dp))
+        if (onDebugApprove != null) {
+            // Labelled as a debug affordance, not dressed up as a feature: a
+            // button here that merely said "Continue" would read to a reviewer
+            // like the app verifies doctors itself, which it must never do.
+            Text(
+                text = stringResource(R.string.doctor_status_debug_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = DermoColors.CoralText,
+            )
+            OutlinedNeuButton(
+                onClick = onDebugApprove,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) {
+                Text(stringResource(R.string.doctor_status_debug_approve))
+            }
+        }
         if (onContactSupport != null) {
             OutlinedNeuButton(
                 onClick = onContactSupport,

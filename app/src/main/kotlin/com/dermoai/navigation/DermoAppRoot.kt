@@ -176,6 +176,9 @@ fun DermoAppRoot(
                     onNavigateToSignUp = {
                         navController.navigate(SignUpRoute)
                     },
+                    onDoctorSignUp = {
+                        navController.navigate(DoctorSignUpRoute)
+                    },
                 )
             }
             composable<SignUpRoute> {

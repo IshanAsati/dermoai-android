@@ -32,16 +32,16 @@ import javax.inject.Singleton
  * `APPWRITE_API_KEY` in the environment.
  */
 @Singleton
-class AppwriteConfig @Inject constructor() {
+open class AppwriteConfig @Inject constructor() {
 
     /** Appwrite REST base, e.g. `https://cloud.appwrite.io/v1`. Blank when unset. */
-    val endpoint: String = normalise(BuildConfig.APPWRITE_ENDPOINT)
+    open val endpoint: String = normalise(BuildConfig.APPWRITE_ENDPOINT)
 
     /** Appwrite project id. Blank when unset. */
-    val projectId: String = normalise(BuildConfig.APPWRITE_PROJECT_ID)
+    open val projectId: String = normalise(BuildConfig.APPWRITE_PROJECT_ID)
 
     /** Appwrite database id holding the collections in [AppwriteSchema]. Blank when unset. */
-    val databaseId: String = normalise(BuildConfig.APPWRITE_DATABASE_ID)
+    open val databaseId: String = normalise(BuildConfig.APPWRITE_DATABASE_ID)
 
     /**
      * True only when all three values are present and the endpoint at least
@@ -51,14 +51,14 @@ class AppwriteConfig @Inject constructor() {
      * throws on first use somewhere deep in a coroutine, which is a far worse
      * failure than never building one.
      */
-    val isConfigured: Boolean
+    open val isConfigured: Boolean
         get() = isConfigured(endpoint, projectId, databaseId)
 
     /**
      * The flag callers should branch on, named after the concept rather than
      * the negation so read sites say what they mean.
      */
-    val isLocalOnlyMode: Boolean
+    open val isLocalOnlyMode: Boolean
         get() = !isConfigured
 
     companion object {

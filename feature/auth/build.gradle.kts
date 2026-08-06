@@ -16,6 +16,9 @@ android {
 
     buildFeatures {
         compose = true
+        // Needed for BuildConfig.DEBUG, which is what keeps the demo-only
+        // verification shortcut on DoctorStatusScreen out of release builds.
+        buildConfig = true
     }
 
     compileOptions {

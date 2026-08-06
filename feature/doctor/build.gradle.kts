@@ -26,6 +26,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -52,4 +58,7 @@ dependencies {
     implementation(libs.zxing.core)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation(libs.androidx.test.ext.junit)
 }

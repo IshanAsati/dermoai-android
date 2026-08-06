@@ -56,6 +56,13 @@ import kotlinx.coroutines.launch
 fun SignInScreen(
     onSignedIn: () -> Unit,
     onNavigateToSignUp: () -> Unit,
+    /**
+     * Second entry to [DoctorSignUpScreen]. The first one hangs off the bottom of
+     * the patient sign-up form, which means a clinician had to decide to register
+     * as a patient before discovering they should not. One route to a surface is
+     * enough only when people arrive the way the graph expects.
+     */
+    onDoctorSignUp: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel(),
     googleSignInHelper: GoogleSignInHelper = rememberGoogleSignInHelper(),
@@ -200,6 +207,16 @@ fun SignInScreen(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {
                 Text(stringResource(R.string.auth_no_account))
+            }
+            TextButton(
+                onClick = onDoctorSignUp,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Text(
+                    text = stringResource(R.string.doctor_sign_up_entry),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DermoColors.TealText,
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
         }

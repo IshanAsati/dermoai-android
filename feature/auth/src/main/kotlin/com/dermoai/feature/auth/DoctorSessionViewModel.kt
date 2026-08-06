@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -72,6 +73,36 @@ class DoctorSessionViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = DoctorSessionState(),
         )
+
+    /**
+     * Marks the signed-in doctor's own claim VERIFIED. **Debug builds only.**
+     *
+     * Real verification is a human reading a registration number, and nothing in
+     * the shipped product may short-circuit that — the data on the other side is
+     * other people's medical photographs. But the review is out-of-band, so on a
+     * debug build there was no way to reach the dashboard at all without editing
+     * the device's SQLite file over adb. That made the app's main feature
+     * unreachable during development and unshowable in a demo.
+     *
+     * The guard is at the only call site ([DoctorStatusScreen], behind
+     * `BuildConfig.DEBUG`), so the button does not exist in a release build. This
+     * method stays non-private only because a Compose screen has to reach it.
+     *
+     * No-op unless the account already has a claim on file: this reveals the
+     * dashboard for a doctor who registered, it does not mint one.
+     */
+    fun approveOwnClaimForDebug() {
+        val doctorId = doctorSession.value.profile?.id ?: return
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            doctorProfileDao.updateVerification(
+                doctorId = doctorId,
+                status = VerificationStatus.VERIFIED.name,
+                verifiedAt = now,
+                updatedAt = now,
+            )
+        }
+    }
 }
 
 /**

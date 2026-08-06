@@ -96,6 +96,9 @@
     <string name="doctor_status_contact_support">Contact support</string>
     <string name="doctor_status_sign_out">Sign out</string>
     <string name="doctor_status_not_provided">Not provided</string>
+    <!-- Debug builds only. Never composed in a release build. -->
+    <string name="doctor_status_debug_note">Debug build: review is out-of-band, so this shortcut stands in for a reviewer. It is not present in a release build.</string>
+    <string name="doctor_status_debug_approve">Approve this claim (debug only)</string>
     <!-- Replace with Firebase Web client ID when the real google-services.json is added -->
     <string name="default_web_client_id" translatable="false">placeholder-web-client-id.apps.googleusercontent.com</string>
 </resources>
