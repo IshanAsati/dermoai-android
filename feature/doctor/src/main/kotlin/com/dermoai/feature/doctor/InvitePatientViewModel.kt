@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.dermoai.core.database.dao.DoctorInviteDao
 import com.dermoai.core.database.dao.DoctorProfileDao
 import com.dermoai.core.database.entity.DoctorInviteEntity
+import com.dermoai.core.database.entity.DoctorProfileEntity
 import com.dermoai.core.domain.model.DoctorInvite
 import com.dermoai.core.domain.model.DoctorProfile
 import com.dermoai.feature.doctor.data.toDomain
@@ -18,12 +19,34 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.security.SecureRandom
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.random.asKotlinRandom
+import com.dermoai.core.common.result.AppResult
 import com.dermoai.core.data.sync.DoctorSyncRepository
+import com.dermoai.core.data.sync.PushOutcome
+import com.dermoai.core.data.sync.SyncSkipReason
+
+/**
+ * Whether the code on screen has actually left this device.
+ *
+ * A doctor reading a code aloud has no other signal that it will resolve on
+ * the patient's phone — [InvitePatientViewModel.createInvite] pushes both the
+ * doctor's own profile and the invite row, and this is what the UI renders
+ * from the combined result. See the class doc on why this exists: silently
+ * skipping the push used to be indistinguishable from success.
+ */
+sealed interface InviteSyncState {
+    /** Nothing generated yet this session. */
+    data object Idle : InviteSyncState
+    data object Syncing : InviteSyncState
+    data object Synced : InviteSyncState
+    data class NotSynced(val reason: SyncSkipReason) : InviteSyncState
+    data object Failed : InviteSyncState
+}
 
 sealed interface InviteUiState {
     data object Loading : InviteUiState
@@ -76,8 +99,15 @@ class InvitePatientViewModel @Inject constructor(
     private val _generationFailed = MutableStateFlow(false)
     val generationFailed: StateFlow<Boolean> = _generationFailed.asStateFlow()
 
+    /** Whether the most recently generated code has actually reached the server. */
+    private val _syncState = MutableStateFlow<InviteSyncState>(InviteSyncState.Idle)
+    val syncState: StateFlow<InviteSyncState> = _syncState.asStateFlow()
+
     private var loadJob: Job? = null
     private var profile: DoctorProfile? = null
+
+    /** Guards the background profile push in [load] against firing on every emission. */
+    private var lastPushedProfileUpdatedAt: Long? = null
 
     private val random = SecureRandom().asKotlinRandom()
 
@@ -87,6 +117,7 @@ class InvitePatientViewModel @Inject constructor(
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             doctorProfileDao.observeByUserId(userId)
+                .onEach { entity -> pushProfileIfChanged(entity) }
                 .flatMapLatest { entity ->
                     val doctor = entity?.toDomain()
                     profile = doctor
@@ -105,6 +136,31 @@ class InvitePatientViewModel @Inject constructor(
                         _selectedInviteId.value = next.invites.firstOrNull { it.isUsable(now) }?.id
                     }
                 }
+        }
+    }
+
+    /**
+     * Publishes the doctor's own credentials whenever the local row changes.
+     *
+     * This is the fix for the bug that made cross-device redemption fail
+     * silently: nothing used to call [DoctorSyncRepository.pushDoctorProfile]
+     * at all, so `doctor_profiles` stayed empty on the server even though
+     * `doctor_invites` was being pushed correctly. A patient's device can find
+     * the invite by code but then has no profile to resolve the issuing
+     * doctor's name against, and the redemption fails at that step — which
+     * looks, from the patient's side, exactly like "nothing happened".
+     *
+     * Fire-and-forget and never awaited by the UI: a doctor with no signal
+     * must still see their invite list from Room. [createInvite] additionally
+     * pushes synchronously right before sharing a fresh code, so this is a
+     * background safety net rather than the only path.
+     */
+    private fun pushProfileIfChanged(entity: DoctorProfileEntity?) {
+        if (entity == null || entity.updatedAt == lastPushedProfileUpdatedAt) return
+        lastPushedProfileUpdatedAt = entity.updatedAt
+        viewModelScope.launch {
+            sync.ensureSession()
+            sync.pushDoctorProfile(entity)
         }
     }
 
@@ -148,6 +204,7 @@ class InvitePatientViewModel @Inject constructor(
             val result = runCatching { doctorInviteDao.upsert(entity) }
             if (result.isSuccess) {
                 _selectedInviteId.value = id
+                _syncState.value = InviteSyncState.Syncing
                 // Publish so the patient's phone can find this code. A code that
                 // only exists in this device's Room is unredeemable anywhere
                 // else, which is precisely the bug this fixes.
@@ -157,11 +214,39 @@ class InvitePatientViewModel @Inject constructor(
                 // a doctor with no signal should still get a code they can read
                 // out. The push returns a degraded success when offline.
                 sync.ensureSession()
-                sync.pushDoctorInvite(entity, doctor.userId)
+                // The profile push goes first and is awaited here rather than
+                // left to the background sync in `load()`: a patient's device
+                // resolves the issuing doctor by userId right after finding the
+                // invite, and that lookup silently fails if `doctor_profiles`
+                // has nothing for this account yet. Doing it here means the
+                // very code being handed to the patient is redeemable by the
+                // time they finish typing it.
+                val profilePush = doctorProfileDao.getByUserId(doctor.userId)
+                    ?.let { sync.pushDoctorProfile(it) }
+                val invitePush = sync.pushDoctorInvite(entity, doctor.userId)
+                _syncState.value = combinedSyncState(profilePush, invitePush)
             } else {
                 _generationFailed.value = true
             }
         }
+    }
+
+    /**
+     * Reduces the doctor-profile and invite push results to one state for the
+     * UI. Either one skipping or failing means the code cannot be resolved
+     * remotely, so the more informative of the two wins: an error outranks a
+     * skip, and any skip is reported over a bare "synced".
+     */
+    private fun combinedSyncState(
+        profilePush: AppResult<PushOutcome>?,
+        invitePush: AppResult<PushOutcome>,
+    ): InviteSyncState {
+        val results = listOfNotNull(profilePush, invitePush)
+        if (results.any { it is AppResult.Error }) return InviteSyncState.Failed
+        val skipReason = results
+            .filterIsInstance<AppResult.Success<PushOutcome>>()
+            .firstNotNullOfOrNull { it.data.skipped }
+        return skipReason?.let(InviteSyncState::NotSynced) ?: InviteSyncState.Synced
     }
 
     /**

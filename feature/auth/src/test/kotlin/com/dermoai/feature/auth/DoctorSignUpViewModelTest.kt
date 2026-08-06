@@ -1,7 +1,11 @@
 package com.dermoai.feature.auth
 
+import com.dermoai.core.common.dispatcher.DispatcherProvider
 import com.dermoai.core.common.result.AppResult
 import com.dermoai.core.common.ui.UiState
+import com.dermoai.core.data.sync.AppwriteClientProvider
+import com.dermoai.core.data.sync.AppwriteConfig
+import com.dermoai.core.data.sync.DoctorSyncRepository
 import com.dermoai.core.database.dao.DoctorProfileDao
 import com.dermoai.core.database.dao.UserProfileDao
 import com.dermoai.core.database.entity.DoctorProfileEntity
@@ -10,6 +14,7 @@ import com.dermoai.core.domain.model.AuthUser
 import com.dermoai.core.domain.model.VerificationStatus
 import com.dermoai.core.domain.repository.AuthRepository
 import com.dermoai.core.domain.usecase.auth.SignUpWithEmailUseCase
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -144,6 +149,39 @@ class DoctorSignUpViewModelTest {
         }
     }
 
+    /**
+     * Real repository over a local-only config rather than a mock: pushing a
+     * profile in local-only mode degrades to a no-op success (see
+     * DoctorSyncRepositoryTest), which is exactly the behaviour every test
+     * below relies on — the sign-up flow must work identically whether or not
+     * a backend is configured.
+     */
+    private class FakeLocalOnlyAppwriteConfig : AppwriteConfig() {
+        override val endpoint: String = ""
+        override val projectId: String = ""
+        override val databaseId: String = ""
+        override val isConfigured: Boolean = false
+        override val isLocalOnlyMode: Boolean = true
+    }
+
+    private fun fakeSyncRepository(): DoctorSyncRepository {
+        val config = FakeLocalOnlyAppwriteConfig()
+        val clientProvider = AppwriteClientProvider(
+            context = android.content.ContextWrapper(null),
+            config = config,
+        )
+        val dispatcherProvider = object : DispatcherProvider {
+            override val main: CoroutineDispatcher = dispatcher
+            override val io: CoroutineDispatcher = dispatcher
+            override val default: CoroutineDispatcher = dispatcher
+        }
+        return DoctorSyncRepository(
+            config = config,
+            clients = clientProvider,
+            dispatchers = dispatcherProvider,
+        )
+    }
+
     private fun viewModel(
         auth: FakeAuthRepository = FakeAuthRepository(),
         doctorDao: FakeDoctorProfileDao = FakeDoctorProfileDao(),
@@ -152,6 +190,7 @@ class DoctorSignUpViewModelTest {
         signUpWithEmail = SignUpWithEmailUseCase(auth),
         doctorProfileDao = doctorDao,
         userProfileDao = userDao,
+        sync = fakeSyncRepository(),
         authRepository = auth,
     )
 

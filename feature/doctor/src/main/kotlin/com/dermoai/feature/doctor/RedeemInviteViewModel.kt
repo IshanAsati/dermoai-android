@@ -44,6 +44,27 @@ sealed interface RedeemRejection {
      */
     data object LostRace : RedeemRejection
     data object Failed : RedeemRejection
+
+    /**
+     * The server was never reached — offline, not signed in, or no backend
+     * configured — as opposed to [NotFound], where the server answered and
+     * said no such code exists. Collapsing the two used to be this flow's
+     * biggest diagnostic gap: a patient staring at "no invite matches that
+     * code" while the real problem was venue wifi has no way to know to try
+     * again versus ask for a fresh code.
+     */
+    data object Offline : RedeemRejection
+}
+
+/** Outcome of looking a code up on the backend. See [RedeemInviteViewModel.fetchRemoteInvite]. */
+private sealed interface RemoteInviteLookup {
+    data class Found(val invite: DoctorInvite) : RemoteInviteLookup
+
+    /** The server was reached and answered: no invite has this code. */
+    data object NotFound : RemoteInviteLookup
+
+    /** The server was not reached at all — offline, no session, not configured. */
+    data object Unreachable : RemoteInviteLookup
 }
 
 sealed interface RedeemUiState {
@@ -130,42 +151,60 @@ class RedeemInviteViewModel @Inject constructor(
                 // this device's database. Fetch it, and the issuing profile,
                 // then cache both so the rest of the flow is offline-identical
                 // to a locally-issued code.
-                invite = fetchRemoteInvite(candidate)
+                when (val remote = fetchRemoteInvite(candidate)) {
+                    is RemoteInviteLookup.Found -> invite = remote.invite
+                    is RemoteInviteLookup.NotFound -> {
+                        _state.value = RedeemUiState.Entry(RedeemRejection.NotFound)
+                        return@launch
+                    }
+                    is RemoteInviteLookup.Unreachable -> {
+                        _state.value = RedeemUiState.Entry(RedeemRejection.Offline)
+                        return@launch
+                    }
+                }
             }
-            if (invite == null) {
+            val resolvedInvite = invite ?: run {
                 _state.value = RedeemUiState.Entry(RedeemRejection.NotFound)
                 return@launch
             }
-            val reason = invite.unusableReason(now)
+            val reason = resolvedInvite.unusableReason(now)
             if (reason != null) {
                 _state.value = RedeemUiState.Entry(RedeemRejection.Unusable(reason))
                 return@launch
             }
-            val doctor = doctorProfileDao.getById(invite.doctorId)?.toDomain()
+            val doctor = doctorProfileDao.getById(resolvedInvite.doctorId)?.toDomain()
             if (doctor == null) {
                 // A live code whose issuing profile is missing on this device.
                 // Not the patient's problem to interpret, and not something to
-                // paper over by linking to an unknown clinician.
+                // paper over by linking to an unknown clinician. Most commonly
+                // this now means the doctor's device has not yet pushed its
+                // profile — see InvitePatientViewModel.pushProfileIfChanged.
                 _state.value = RedeemUiState.Entry(RedeemRejection.Failed)
                 return@launch
             }
-            _state.value = RedeemUiState.Consent(invite, doctor)
+            _state.value = RedeemUiState.Consent(resolvedInvite, doctor)
         }
     }
 
     /**
      * Looks the code up on the backend and caches what it finds locally.
      *
-     * Returns null for every failure — no backend, no signal, no such code —
-     * because the caller renders them all the same way. Distinguishing "wrong
-     * code" from "no signal" would be better UX, and needs the sync layer to
-     * report the two separately; it currently does not.
+     * Distinguishes "the server answered and there is no such code"
+     * ([RemoteInviteLookup.NotFound]) from "the server was never reached"
+     * ([RemoteInviteLookup.Unreachable]) by reading [PullOutcome.fromServer]
+     * rather than just the nullable value — a skipped/offline pull returns an
+     * empty value that looks identical to a genuine miss unless this is
+     * checked first. Collapsing the two was the flow's biggest diagnostic gap:
+     * a patient on bad wifi and a patient with a typo saw the exact same
+     * message.
      */
-    private suspend fun fetchRemoteInvite(code: String): DoctorInvite? {
+    private suspend fun fetchRemoteInvite(code: String): RemoteInviteLookup {
         val now = System.currentTimeMillis()
         sync.ensureSession()
-        val remote = (sync.findInviteByCode(code) as? AppResult.Success)?.data?.value
-            ?: return null
+        val outcome = (sync.findInviteByCode(code) as? AppResult.Success)?.data
+            ?: return RemoteInviteLookup.Unreachable
+        if (!outcome.fromServer) return RemoteInviteLookup.Unreachable
+        val remote = outcome.value ?: return RemoteInviteLookup.NotFound
 
         // The profile has to come across too: the consent screen names the
         // clinician, and linking to an unnamed doctor is exactly what the
@@ -176,7 +215,9 @@ class RedeemInviteViewModel @Inject constructor(
             runCatching { doctorProfileDao.upsert(profile.toEntity(now)) }
         }
         runCatching { doctorInviteDao.upsert(remote.toEntity(now)) }
-        return doctorInviteDao.getByCode(code)?.toDomain()
+        val cached = doctorInviteDao.getByCode(code)?.toDomain()
+            ?: return RemoteInviteLookup.NotFound
+        return RemoteInviteLookup.Found(cached)
     }
 
     /** Back out of the disclosure without granting anything. */

@@ -46,6 +46,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Sync
+import com.dermoai.core.data.sync.SyncSkipReason
 import com.dermoai.core.domain.model.DoctorInvite
 import com.dermoai.core.ui.components.DermoGlassCard
 import com.dermoai.core.ui.components.GradientHeader
@@ -86,6 +91,7 @@ fun InvitePatientScreen(
     val expiryDays by viewModel.expiryDays.collectAsStateWithLifecycle()
     val maxUses by viewModel.maxUses.collectAsStateWithLifecycle()
     val generationFailed by viewModel.generationFailed.collectAsStateWithLifecycle()
+    val syncState by viewModel.syncState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
         GradientHeader(
@@ -123,6 +129,7 @@ fun InvitePatientScreen(
                     }
                     if (selected != null) {
                         item { InviteCodeCard(selected) }
+                        item { InviteSyncBanner(syncState) }
                     }
                     item { SectionTitle(stringResource(R.string.doctor_invite_active_title)) }
                     if (s.invites.isEmpty()) {
@@ -324,6 +331,60 @@ private fun InviteCodeCard(invite: DoctorInvite) {
                     },
                 )
             }
+        }
+    }
+}
+
+/**
+ * Whether the selected code above has actually left this device.
+ *
+ * [InviteSyncState.Idle] renders nothing — a code carried over from a
+ * previous session with no fresh push attempt has no new information to
+ * show, and a permanent banner would just be noise. Every other state says,
+ * plainly, whether a patient on a different phone can find this code yet.
+ */
+@Composable
+private fun InviteSyncBanner(state: InviteSyncState) {
+    val (icon, tint, message) = when (state) {
+        is InviteSyncState.Idle -> return
+        is InviteSyncState.Syncing -> Triple(
+            Icons.Outlined.Sync,
+            DermoColors.Slate,
+            stringResource(R.string.doctor_invite_sync_syncing),
+        )
+        is InviteSyncState.Synced -> Triple(
+            Icons.Outlined.CheckCircle,
+            DermoColors.SageText,
+            stringResource(R.string.doctor_invite_sync_synced),
+        )
+        is InviteSyncState.NotSynced -> Triple(
+            Icons.Outlined.CloudOff,
+            DermoColors.AmberText,
+            stringResource(
+                when (state.reason) {
+                    SyncSkipReason.OFFLINE -> R.string.doctor_invite_sync_not_synced_offline
+                    SyncSkipReason.NO_SESSION -> R.string.doctor_invite_sync_not_synced_no_session
+                    SyncSkipReason.NOT_CONFIGURED,
+                    SyncSkipReason.IDENTITY_MISMATCH,
+                    -> R.string.doctor_invite_sync_not_synced_other
+                },
+            ),
+        )
+        is InviteSyncState.Failed -> Triple(
+            Icons.Outlined.ErrorOutline,
+            DermoColors.CoralText,
+            stringResource(R.string.doctor_invite_sync_failed),
+        )
+    }
+    NeuSurface(
+        modifier = Modifier.fillMaxWidth(),
+        style = NeuSurfaceStyle.Inset,
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(message, style = MaterialTheme.typography.bodySmall, color = tint)
         }
     }
 }
