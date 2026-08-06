@@ -349,7 +349,7 @@ private fun InviteSyncBanner(state: InviteSyncState) {
         is InviteSyncState.Idle -> return
         is InviteSyncState.Syncing -> Triple(
             Icons.Outlined.Sync,
-            DermoColors.Slate,
+            MaterialTheme.colorScheme.onSurfaceVariant,
             stringResource(R.string.doctor_invite_sync_syncing),
         )
         is InviteSyncState.Synced -> Triple(
