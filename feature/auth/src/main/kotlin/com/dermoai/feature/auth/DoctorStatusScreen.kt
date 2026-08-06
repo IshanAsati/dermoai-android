@@ -124,7 +124,7 @@ private fun DoctorStatusContent(
                 Text(
                     text = stringResource(session.verificationStatus.explanationRes()),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = DermoColors.Slate,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -164,7 +164,7 @@ private fun DoctorStatusContent(
                 Text(
                     text = stringResource(R.string.doctor_status_empty),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = DermoColors.Slate,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                 )
             }
@@ -228,7 +228,7 @@ private fun SubmittedCredentials(profile: DoctorProfile) {
             Text(
                 text = stringResource(R.string.doctor_status_credentials_readonly),
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             CredentialRow(
                 label = stringResource(R.string.doctor_field_full_name),
@@ -273,7 +273,7 @@ private fun CredentialRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = DermoColors.Slate,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
         Text(
@@ -318,7 +318,7 @@ private fun CapabilityList(
             Text(
                 text = footnote,
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

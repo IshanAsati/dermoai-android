@@ -239,7 +239,7 @@ private fun ConsentPanel(
                 listOf(doctor.specialty, doctor.institution).filter { it.isNotEmpty() }
                     .joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (!doctor.isVerified) {
@@ -268,7 +268,7 @@ private fun ConsentPanel(
             Text(
                 stringResource(R.string.doctor_consent_uses_left, invite.remainingUses),
                 style = MaterialTheme.typography.labelMedium,
-                color = DermoColors.Slate,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

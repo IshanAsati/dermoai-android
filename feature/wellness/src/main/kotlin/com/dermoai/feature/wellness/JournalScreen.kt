@@ -111,7 +111,7 @@ fun JournalScreen(
                             Spacer(Modifier.height(4.dp))
                             Text(entry.body, style = MaterialTheme.typography.bodyMedium, maxLines = 3)
                             Spacer(Modifier.height(4.dp))
-                            Text(SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(entry.createdAt)), style = MaterialTheme.typography.bodySmall, color = DermoColors.Slate)
+                            Text(SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(entry.createdAt)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(Modifier.width(8.dp))
                         Text("${entry.mood}/5", style = MaterialTheme.typography.labelLarge, color = DermoColors.TealText)

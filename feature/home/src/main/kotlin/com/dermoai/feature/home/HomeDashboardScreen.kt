@@ -202,7 +202,7 @@ private fun ScanHeroCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
             Spacer(Modifier.width(20.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.home_cta_scan), style = MaterialTheme.typography.titleLarge, color = DermoColors.TealText, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.home_cta_scan_subtitle), style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate, modifier = Modifier.padding(top = 2.dp))
+                Text(stringResource(R.string.home_cta_scan_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
             }
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = DermoColors.TealText)
         }
