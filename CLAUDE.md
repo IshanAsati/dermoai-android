@@ -150,6 +150,55 @@ duplicates).
 
 ---
 
+## 5. Follow-up round (same day): doctor settings unreachable, fake seeded photos, doctor dark-mode contrast
+
+Found by hands-on testing after the first round above.
+
+**Doctor dashboard had no way to reach Settings (or sign out).** A verified doctor is routed
+straight to `DoctorDashboardRoute`, which is deliberately not one of the bottom-bar `TabRoute`s
+(`app/.../DermoAppRoot.kt` — "Doctor dashboard" routes are listed separately from "Tab
+destinations"), so `currentTab` resolves to `null` there and no bottom bar renders — meaning no
+"More" tab, no Settings, no sign-out, for the entire lifetime of a verified doctor session. Fixed
+by adding a settings gear icon directly to `DoctorDashboardScreen`'s header
+(`DoctorDashboardScreen.kt`, `onOpenSettings` param), wired to the existing `SettingsRoute` in
+`DermoAppRoot.kt`. This is also where "Load Demo Data" lives, so it was previously unreachable on
+the doctor phone specifically.
+
+**Seeded scans had no real image.** `DemoDataSeeder` originally pointed `imagePath`/`thumbnailPath`
+at a nonexistent placeholder path, so seeded scans rendered a neutral icon tile instead of a photo.
+Added `feature/settings/.../demo/DemoPhotoGenerator.kt`, which procedurally renders a synthetic
+skin-tone macro photo per scan (Canvas/Bitmap, no external assets or real clinical images — using
+a fabricated dermatology photo would be misleading) with a lesion-like blob whose size/color/border
+irregularity scales with the scan's top-ranked severity (LOW → small smooth spot, CRITICAL → large,
+irregular, with a faint reddish halo). Written to `filesDir/photos/demo_<scanId>.jpg`, the same
+directory real captures use (`feature/scan/.../ScanScreens.kt`), so every screen that decodes
+`imagePath` renders an actual JPEG. `DemoDataSeeder.seed()` now also runs on
+`DispatcherProvider.io` (it does real file I/O, which has no business on `viewModelScope`'s
+default `Main` dispatcher).
+
+**Doctor screens had a second, larger dark-mode contrast bug.** `DermoColors.CoralText` /
+`AmberText` / `SageText` are dark, saturated colors explicitly documented as tuned only for light
+surfaces (their own comments say "~5.2:1 on raised" — i.e. the *light* raised card), but they're
+used directly throughout `feature/doctor` for severity bands, adherence chips, trend arrows, link
+status, and sync banners — exactly the screens the doctor spends the whole session on. In dark mode
+these sit near-isometric in luminance with `DarkCanvas`/`DarkCard` and fail contrast badly (this is
+the same class of bug the first round's dark-mode fix addressed elsewhere, flagged then as a known
+follow-up in `DoctorVerificationBadge.kt` — turned out to be broader). Fixed by adding
+`DarkCoralText`/`DarkAmberText`/`DarkSageText` to `DermoColors.kt` (computed ≥4.5:1 against both
+`DarkCanvas` #0F172A and `DarkCard` #232F45) plus theme-aware composable properties
+(`DermoColors.coralText`/`.amberText`/`.sageText`/`.slateText`, backed by `LocalNeuShadowColors` to
+detect dark mode — reused rather than re-deriving theme state, since `DermoTheme` already threads
+its light/dark decision through that CompositionLocal), and swapped every static usage across
+`feature/doctor` (`DoctorComponents.kt`, `DoctorDashboardScreen.kt`, `InvitePatientScreen.kt`,
+`PatientDetailScreen.kt`, `PatientPrivacyScreen.kt`, `QrScanScreen.kt`, `RedeemInviteScreen.kt`).
+The rest of the app (outside `feature/doctor`) was not swept in this pass — same bug likely exists
+wherever `CoralText`/`AmberText`/`SageText` are used elsewhere, left as a follow-up since it wasn't
+reported as visible.
+
+`./gradlew assembleDebug` → `BUILD SUCCESSFUL`, reinstalled on both devices.
+
+---
+
 ## Build/verification status
 
 `./gradlew assembleDebug` → `BUILD SUCCESSFUL`. Installed via `adb install -r` on both connected
