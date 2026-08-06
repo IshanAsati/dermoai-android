@@ -132,7 +132,7 @@ fun PatientDetailScreen(
                 title = stringResource(R.string.doctor_revoked_done_title),
                 body = stringResource(R.string.doctor_revoked_done_body),
                 modifier = Modifier.weight(1f),
-                tint = DermoColors.CoralText,
+                tint = DermoColors.coralText,
                 action = { BackButton(onBack) },
             )
 

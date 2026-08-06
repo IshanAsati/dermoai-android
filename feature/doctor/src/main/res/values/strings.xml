@@ -17,6 +17,7 @@
     <!-- Dashboard -->
     <string name="doctor_dashboard_title">Patient inbox</string>
     <string name="doctor_dashboard_subtitle">Your clinician dashboard</string>
+    <string name="doctor_open_settings">Settings</string>
     <string name="doctor_dashboard_ranked_note">Ordered by clinical urgency — highest severity first, then worsening trends, then patients who have stopped scanning.</string>
     <string name="doctor_verified_badge">Verified clinician</string>
     <plurals name="doctor_active_patients">

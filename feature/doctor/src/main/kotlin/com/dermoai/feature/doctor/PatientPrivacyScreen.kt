@@ -194,9 +194,9 @@ private fun LinkedDoctorCard(row: LinkedDoctorRow, onRevoke: () -> Unit) {
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = when (row.status) {
-                    LinkStatus.ACTIVE -> DermoColors.SageText
-                    LinkStatus.INVITED -> DermoColors.AmberText
-                    LinkStatus.REVOKED -> DermoColors.CoralText
+                    LinkStatus.ACTIVE -> DermoColors.sageText
+                    LinkStatus.INVITED -> DermoColors.amberText
+                    LinkStatus.REVOKED -> DermoColors.coralText
                 },
             )
             Text(
@@ -217,7 +217,7 @@ private fun LinkedDoctorCard(row: LinkedDoctorRow, onRevoke: () -> Unit) {
                 NeuButton(
                     onClick = onRevoke,
                     modifier = Modifier.fillMaxWidth(),
-                    contentColor = DermoColors.CoralText,
+                    contentColor = DermoColors.coralText,
                 ) {
                     Icon(Icons.Outlined.Block, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))

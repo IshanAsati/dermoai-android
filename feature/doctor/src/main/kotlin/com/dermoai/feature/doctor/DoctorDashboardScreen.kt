@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.PersonOff
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,6 +42,7 @@ import com.dermoai.core.domain.model.DoctorProfile
 import com.dermoai.core.ui.components.GradientHeader
 import com.dermoai.core.ui.components.MedicalDisclaimerBar
 import com.dermoai.core.ui.components.NeuButton
+import com.dermoai.core.ui.components.NeuIconButton
 import com.dermoai.core.ui.components.NeuSurface
 import com.dermoai.core.ui.theme.DermoColors
 import com.dermoai.feature.doctor.triage.TriageRow
@@ -63,12 +65,17 @@ import com.dermoai.feature.doctor.triage.TriageRow
  * @param onPatientClick receives the patient's `AuthUser.id`, for
  *   [PatientDetailScreen].
  * @param onInvitePatient opens [InvitePatientScreen].
+ * @param onOpenSettings opens the shared Settings screen. The doctor
+ *   dashboard is not one of the bottom-bar tabs (a verified doctor never sees
+ *   the patient tab bar at all), so without this the settings screen — and
+ *   sign-out — would be unreachable once a doctor is verified.
  */
 @Composable
 fun DoctorDashboardScreen(
     userId: String,
     onPatientClick: (patientUserId: String) -> Unit,
     onInvitePatient: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -80,6 +87,16 @@ fun DoctorDashboardScreen(
             ?: (state as? DoctorDashboardUiState.Locked)?.profile
         val activeCount = (state as? DoctorDashboardUiState.Ready)?.rows?.size ?: 0
 
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            NeuIconButton(
+                onClick = onOpenSettings,
+                icon = Icons.Outlined.Settings,
+                contentDescription = stringResource(R.string.doctor_open_settings),
+            )
+        }
         GradientHeader(
             title = profile?.fullName ?: stringResource(R.string.doctor_dashboard_title),
             subtitle = when (state) {
@@ -178,7 +195,7 @@ private fun LockedState(profile: DoctorProfile, modifier: Modifier = Modifier) {
             verificationLabel(profile.verificationStatus),
         ),
         modifier = modifier,
-        tint = DermoColors.AmberText,
+        tint = DermoColors.amberText,
     )
 }
 

@@ -197,7 +197,7 @@ private fun CodeEntry(
         modifier = Modifier.fillMaxWidth(),
         enabled = canSubmit,
         containerColor = if (canSubmit) DermoColors.Teal else DermoColors.Line,
-        contentColor = if (canSubmit) Color.White else DermoColors.Slate,
+        contentColor = if (canSubmit) Color.White else DermoColors.slateText,
     ) {
         Text(stringResource(R.string.doctor_redeem_check))
     }
@@ -237,9 +237,9 @@ private fun RejectionBanner(rejection: RedeemRejection) {
         shape = RoundedCornerShape(12.dp),
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.ErrorOutline, null, tint = DermoColors.CoralText)
+            Icon(Icons.Outlined.ErrorOutline, null, tint = DermoColors.coralText)
             Spacer(Modifier.width(10.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = DermoColors.CoralText)
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = DermoColors.coralText)
         }
     }
 }
@@ -278,7 +278,7 @@ private fun ConsentPanel(
             Text(
                 stringResource(R.string.doctor_consent_unverified),
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.AmberText,
+                color = DermoColors.amberText,
             )
         }
 
@@ -343,7 +343,7 @@ private fun LinkedPanel(doctorName: String, alreadyHadAccess: Boolean, onDone: (
             Icons.Outlined.CheckCircle,
             null,
             Modifier.size(56.dp),
-            tint = DermoColors.SageText,
+            tint = DermoColors.sageText,
         )
         Spacer(Modifier.height(16.dp))
         Text(

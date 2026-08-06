@@ -1,5 +1,7 @@
 package com.dermoai.feature.settings.demo
 
+import android.content.Context
+import com.dermoai.core.common.dispatcher.DispatcherProvider
 import com.dermoai.core.database.dao.DoctorProfileDao
 import com.dermoai.core.database.dao.PatientLinkDao
 import com.dermoai.core.database.dao.ScanPredictionDao
@@ -13,8 +15,11 @@ import com.dermoai.core.database.entity.SkinScanEntity
 import com.dermoai.core.database.entity.UserProfileDetailsEntity
 import com.dermoai.core.domain.model.UserRole
 import com.dermoai.core.domain.model.VerificationStatus
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.withContext
 
 /** Which surface [DemoDataSeeder.seed] decided to populate, based on the signed-in account's role. */
 enum class DemoSeedMode { DOCTOR, PATIENT }
@@ -60,15 +65,18 @@ data class DemoSeedResult(
  * the real sign-up, invite-redemption, and scan-capture flows use, with
  * label/code/severity triples lifted from the model's actual taxonomy
  * ([DemoDataPlan]) — every screen that reads this data cannot tell it apart
- * from a real user's. The one thing that is *not* real is the photo: seeding
- * actual bitmaps was out of scope, so [PLACEHOLDER_IMAGE_PATH] points at a
- * file that does not exist. `TimelineScreen.TimelineCard` already wraps its
- * `BitmapFactory.decodeFile` call in `runCatching` and falls back to a
- * placeholder tile when it returns null, so this fails safe rather than
- * crashing — the timeline shows a neutral icon instead of a photo for every
- * seeded scan.
+ * from a real user's. The photo is not a real clinical image — sourcing or
+ * fabricating one was out of scope and would be misleading — but it is a
+ * real, decodable JPEG file: [DemoPhotoGenerator] procedurally renders a
+ * skin-tone macro shot with a lesion-like blob scaled to the scan's top
+ * severity, written to the same `filesDir/photos/` directory
+ * [ScanScreens.kt][com.dermoai.feature.scan] uses for real captures, so
+ * every screen that decodes `imagePath` renders an actual thumbnail instead
+ * of falling back to the neutral placeholder tile.
  */
 class DemoDataSeeder @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val dispatchers: DispatcherProvider,
     private val userProfileDao: UserProfileDao,
     private val userProfileDetailsDao: UserProfileDetailsDao,
     private val doctorProfileDao: DoctorProfileDao,
@@ -85,11 +93,15 @@ class DemoDataSeeder @Inject constructor(
      * reliable signal in local auth mode; the stored row is what every other
      * doctor-dashboard read path already trusts (see
      * `FirebaseAuthRepository.persistSession`'s comment on why).
+     *
+     * Runs on [DispatcherProvider.io]: this does real file I/O (rendering and
+     * writing a JPEG per scan), which has no business running on
+     * `viewModelScope`'s default `Main` dispatcher.
      */
-    suspend fun seed(userId: String): DemoSeedResult {
+    suspend fun seed(userId: String): DemoSeedResult = withContext(dispatchers.io) {
         val profile = userProfileDao.getById(userId)
         val now = System.currentTimeMillis()
-        return when (UserRole.fromStorage(profile?.role)) {
+        when (UserRole.fromStorage(profile?.role)) {
             UserRole.DOCTOR -> seedDoctor(userId, now)
             UserRole.PATIENT -> seedPatient(userId, now)
         }
@@ -209,12 +221,13 @@ class DemoDataSeeder @Inject constructor(
 
     private suspend fun writeScan(scanId: String, ownerUserId: String, now: Long, scan: DemoScanSpec) {
         val capturedAt = now - scan.daysAgo.toLong() * DAY_MS
+        val photoPath = renderScanPhoto(scanId, ownerUserId, scan)
         skinScanDao.upsert(
             SkinScanEntity(
                 id = scanId,
                 userId = ownerUserId,
-                imagePath = PLACEHOLDER_IMAGE_PATH,
-                thumbnailPath = PLACEHOLDER_IMAGE_PATH,
+                imagePath = photoPath,
+                thumbnailPath = photoPath,
                 capturedAt = capturedAt,
                 note = scan.note,
                 bodyArea = scan.bodyArea,
@@ -237,6 +250,27 @@ class DemoDataSeeder @Inject constructor(
             },
         )
     }
+
+    /**
+     * Renders this scan's synthetic photo to `filesDir/photos/` and returns its
+     * absolute path, or [PLACEHOLDER_IMAGE_PATH] (a path that does not exist,
+     * which every display path already falls back safely on) if rendering
+     * throws for any reason — a demo tool must never crash the seed action
+     * over a cosmetic failure.
+     */
+    private fun renderScanPhoto(scanId: String, ownerUserId: String, scan: DemoScanSpec): String =
+        runCatching {
+            val photosDir = File(context.filesDir, "photos").apply { mkdirs() }
+            val file = File(photosDir, "demo_$scanId.jpg")
+            val topSeverity = scan.predictions.first().severity
+            DemoPhotoGenerator.render(
+                outFile = file,
+                ownerSeed = ownerUserId,
+                scanId = scanId,
+                topSeverity = topSeverity,
+            )
+            file.absolutePath
+        }.getOrDefault(PLACEHOLDER_IMAGE_PATH)
 
     /** First non-blank wins; `?.` chain reads awkwardly repeated inline four times over. */
     private fun String?.orDefault(fallback: String): String = this?.takeIf { it.isNotBlank() } ?: fallback

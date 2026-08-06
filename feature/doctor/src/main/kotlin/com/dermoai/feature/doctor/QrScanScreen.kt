@@ -178,7 +178,7 @@ private fun QrScanner(
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
-                    color = DermoColors.Slate,
+                    color = DermoColors.slateText,
                 )
             }
             NeuButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
@@ -199,7 +199,7 @@ private fun PermissionRationale(onGrant: () -> Unit, onCancel: () -> Unit) {
             Icons.Outlined.QrCodeScanner,
             null,
             modifier = Modifier.size(48.dp),
-            tint = DermoColors.Slate,
+            tint = DermoColors.slateText,
         )
         Text(
             stringResource(R.string.doctor_redeem_scan_permission_body),

@@ -219,7 +219,7 @@ private fun GenerateCard(
             Text(
                 stringResource(R.string.doctor_invite_error),
                 style = MaterialTheme.typography.bodySmall,
-                color = DermoColors.CoralText,
+                color = DermoColors.coralText,
             )
         }
     }
@@ -354,12 +354,12 @@ private fun InviteSyncBanner(state: InviteSyncState) {
         )
         is InviteSyncState.Synced -> Triple(
             Icons.Outlined.CheckCircle,
-            DermoColors.SageText,
+            DermoColors.sageText,
             stringResource(R.string.doctor_invite_sync_synced),
         )
         is InviteSyncState.NotSynced -> Triple(
             Icons.Outlined.CloudOff,
-            DermoColors.AmberText,
+            DermoColors.amberText,
             stringResource(
                 when (state.reason) {
                     SyncSkipReason.OFFLINE -> R.string.doctor_invite_sync_not_synced_offline
@@ -372,7 +372,7 @@ private fun InviteSyncBanner(state: InviteSyncState) {
         )
         is InviteSyncState.Failed -> Triple(
             Icons.Outlined.ErrorOutline,
-            DermoColors.CoralText,
+            DermoColors.coralText,
             stringResource(R.string.doctor_invite_sync_failed),
         )
     }
@@ -433,13 +433,13 @@ private fun InviteRow(
                         )
                     },
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (usable) DermoColors.SageText else DermoColors.CoralText,
+                    color = if (usable) DermoColors.sageText else DermoColors.coralText,
                 )
             }
             if (usable) {
                 NeuButton(
                     onClick = onRevoke,
-                    contentColor = DermoColors.CoralText,
+                    contentColor = DermoColors.coralText,
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Icon(Icons.Outlined.Block, null, Modifier.size(18.dp))

@@ -243,6 +243,7 @@ fun DermoAppRoot(
                         )
                     },
                     onInvitePatient = { navController.navigate(InvitePatientRoute) },
+                    onOpenSettings = { navController.navigate(SettingsRoute) },
                 )
             }
 

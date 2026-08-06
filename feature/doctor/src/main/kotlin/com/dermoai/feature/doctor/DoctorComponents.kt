@@ -63,10 +63,11 @@ import java.util.Locale
  */
 
 /** Severity → the AA-safe accent used everywhere in the app for that band. */
+@Composable
 internal fun severityColor(severity: ConditionSeverity?): Color = when (severity) {
-    ConditionSeverity.CRITICAL -> DermoColors.CoralText
-    ConditionSeverity.HIGH -> DermoColors.AmberText
-    else -> DermoColors.SageText
+    ConditionSeverity.CRITICAL -> DermoColors.coralText
+    ConditionSeverity.HIGH -> DermoColors.amberText
+    else -> DermoColors.sageText
 }
 
 @Composable
@@ -153,9 +154,9 @@ internal fun AdherenceChip(adherence: PatientAdherence, modifier: Modifier = Mod
         AdherenceBand.INACTIVE -> stringResource(R.string.doctor_band_inactive)
     }
     val color = when (adherence.band) {
-        AdherenceBand.GOOD -> DermoColors.SageText
-        AdherenceBand.SLIPPING -> DermoColors.AmberText
-        AdherenceBand.INACTIVE -> DermoColors.CoralText
+        AdherenceBand.GOOD -> DermoColors.sageText
+        AdherenceBand.SLIPPING -> DermoColors.amberText
+        AdherenceBand.INACTIVE -> DermoColors.coralText
     }
     val counts = stringResource(
         R.string.doctor_adherence_days,
@@ -187,12 +188,12 @@ internal fun TrendChip(trend: PatientTrend, modifier: Modifier = Modifier) {
         )
         trend.direction == TrendDirection.WORSENING -> Triple(
             Icons.Outlined.ArrowUpward,
-            DermoColors.CoralText,
+            DermoColors.coralText,
             stringResource(R.string.doctor_trend_worsening),
         )
         trend.direction == TrendDirection.IMPROVING -> Triple(
             Icons.Outlined.ArrowDownward,
-            DermoColors.SageText,
+            DermoColors.sageText,
             stringResource(R.string.doctor_trend_improving),
         )
         else -> Triple(
