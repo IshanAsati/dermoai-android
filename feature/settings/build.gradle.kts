@@ -16,6 +16,10 @@ android {
 
     buildFeatures {
         compose = true
+        // Needed for BuildConfig.DEBUG, which is what keeps the "Load Demo Data"
+        // seeding shortcut (DemoDataSeeder) out of release builds. Same pattern
+        // as feature/auth's debug verification shortcut.
+        buildConfig = true
     }
 
     compileOptions {
@@ -45,4 +49,6 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
