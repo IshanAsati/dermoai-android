@@ -49,36 +49,87 @@ class LocationProvider @Inject constructor(
         }
     }
 
+    /**
+     * Races a fresh fix from every currently-enabled provider (GPS + network) and
+     * resolves with whichever answers first. GPS alone often can't get a fix
+     * indoors/without sky visibility, and on many devices "Battery saving" location
+     * mode disables GPS_PROVIDER entirely while NETWORK_PROVIDER still works — so
+     * GPS-only requests can stall for the full timeout or throw outright on a
+     * disabled provider. Disabled providers are skipped up front, and any provider
+     * that still throws synchronously (e.g. [IllegalArgumentException] for an
+     * unknown/disabled provider) is treated as "no result from this provider"
+     * rather than crashing the coroutine — the remaining provider(s) can still win.
+     */
     @SuppressLint("MissingPermission")
-    private suspend fun requestCurrentLocation(lm: LocationManager): Pair<Double, Double> =
+    private suspend fun requestCurrentLocation(lm: LocationManager): Pair<Double, Double>? =
         suspendCancellableCoroutine { cont ->
+            val candidates = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+                .filter { provider -> runCatching { lm.isProviderEnabled(provider) }.getOrDefault(false) }
+
+            if (candidates.isEmpty()) {
+                cont.resume(null)
+                return@suspendCancellableCoroutine
+            }
+
+            val activeListeners = mutableListOf<LocationListener>()
+            var pending = candidates.size
+
             fun onLocation(location: Location) {
                 if (!cont.isCompleted) {
                     cont.resume(Pair(location.latitude, location.longitude))
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                lm.getCurrentLocation(
-                    LocationManager.GPS_PROVIDER,
-                    null,
-                    ContextCompat.getMainExecutor(context),
-                    java.util.function.Consumer { loc: Location? -> if (loc != null) onLocation(loc) },
-                )
-            } else {
-                val listener = object : LocationListener {
-                    override fun onLocationChanged(location: Location) = onLocation(location)
 
-                    @Deprecated("Deprecated in API 29", level = DeprecationLevel.HIDDEN)
-                    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
-
-                    @Deprecated("Deprecated in API 29", level = DeprecationLevel.HIDDEN)
-                    override fun onProviderEnabled(provider: String) = Unit
-
-                    @Deprecated("Deprecated in API 29", level = DeprecationLevel.HIDDEN)
-                    override fun onProviderDisabled(provider: String) = Unit
+            // Every requested provider has now failed to produce a result (disabled,
+            // unsupported, or gave up internally) — resolve as "no location" instead
+            // of leaving the caller to wait out the rest of the 8s timeout for nothing.
+            fun onProviderFailed() {
+                pending--
+                if (pending <= 0 && !cont.isCompleted) {
+                    cont.resume(null)
                 }
-                lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, listener, Looper.getMainLooper())
-                cont.invokeOnCancellation { lm.removeUpdates(listener) }
+            }
+
+            cont.invokeOnCancellation {
+                activeListeners.forEach { listener -> runCatching { lm.removeUpdates(listener) } }
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                candidates.forEach { provider ->
+                    try {
+                        lm.getCurrentLocation(
+                            provider,
+                            null,
+                            ContextCompat.getMainExecutor(context),
+                            java.util.function.Consumer { loc: Location? ->
+                                if (loc != null) onLocation(loc) else onProviderFailed()
+                            },
+                        )
+                    } catch (e: Exception) {
+                        onProviderFailed()
+                    }
+                }
+            } else {
+                candidates.forEach { provider ->
+                    try {
+                        val listener = object : LocationListener {
+                            override fun onLocationChanged(location: Location) = onLocation(location)
+
+                            @Deprecated("Deprecated in API 29", level = DeprecationLevel.HIDDEN)
+                            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
+
+                            @Deprecated("Deprecated in API 29", level = DeprecationLevel.HIDDEN)
+                            override fun onProviderEnabled(provider: String) = Unit
+
+                            @Deprecated("Deprecated in API 29", level = DeprecationLevel.HIDDEN)
+                            override fun onProviderDisabled(provider: String) = Unit
+                        }
+                        activeListeners.add(listener)
+                        lm.requestSingleUpdate(provider, listener, Looper.getMainLooper())
+                    } catch (e: Exception) {
+                        onProviderFailed()
+                    }
+                }
             }
         }
 

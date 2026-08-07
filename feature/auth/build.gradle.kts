@@ -16,6 +16,9 @@ android {
 
     buildFeatures {
         compose = true
+        // Needed for BuildConfig.DEBUG, which is what keeps the demo-only
+        // verification shortcut on DoctorStatusScreen out of release builds.
+        buildConfig = true
     }
 
     compileOptions {
@@ -33,6 +36,10 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
     implementation(project(":core:ui"))
+    // Doctor sign-up pushes the fresh credential row to Appwrite so it is
+    // resolvable from a patient's device the moment an invite is issued —
+    // see DoctorSignUpViewModel.persistDoctorClaim.
+    implementation(project(":core:data"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
@@ -47,4 +54,6 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

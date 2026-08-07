@@ -94,7 +94,7 @@ fun OnboardingScreen(
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { viewModel.complete() }) { Text("Skip all") }
-            Text("Step ${page + 1} / 4", style = MaterialTheme.typography.labelMedium, color = DermoColors.Slate)
+            Text("Step ${page + 1} / 4", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             repeat(4) { i -> Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(if (i <= page) DermoColors.Teal else DermoColors.Line.copy(alpha = 0.5f))) }
@@ -154,7 +154,7 @@ private fun LanguagePage(language: String, onLanguageChange: (String) -> Unit, d
     var langExp by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Welcome to DermoAI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Let's personalize your experience", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate)
+        Text("Let's personalize your experience", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("App Language", style = MaterialTheme.typography.labelLarge, color = DermoColors.TealText, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
         ExposedDropdownMenuBox(expanded = langExp, onExpandedChange = { langExp = it }) {
             OutlinedTextField(value = LANGUAGES.find { it.first == language }?.second ?: "English", onValueChange = {}, readOnly = true, label = { Text("Language") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(langExp) }, modifier = Modifier.fillMaxWidth().menuAnchor(), shape = RoundedCornerShape(14.dp))
@@ -175,7 +175,7 @@ private fun LanguagePage(language: String, onLanguageChange: (String) -> Unit, d
 private fun SkinProfilePage(skinType: String, onSkinTypeChange: (String) -> Unit, skinTone: String, onSkinToneChange: (String) -> Unit, skinConcerns: String, onSkinConcernsChange: (String) -> Unit, allergies: String, onAllergiesChange: (String) -> Unit, medications: String, onMedicationsChange: (String) -> Unit, skinCareRoutine: String, onSkinCareRoutineChange: (String) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Skin Profile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Help us provide relevant information", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate)
+        Text("Help us provide relevant information", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         SectionH("Skin Type"); DropdownField("Skin type", skinType, SKIN_TYPES) { onSkinTypeChange(it) }
         SectionH("Skin Tone"); DropdownField("Skin tone", skinTone, SKIN_TONES) { onSkinToneChange(it) }
         SectionH("Primary skin concerns"); OutlinedTextField(value = skinConcerns, onValueChange = onSkinConcernsChange, label = { Text("e.g. Acne, dryness, pigmentation") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), singleLine = true)
@@ -191,7 +191,7 @@ private fun SkinProfilePage(skinType: String, onSkinTypeChange: (String) -> Unit
 private fun LifestylePage(sunExposure: String, onSunExposureChange: (String) -> Unit, waterIntake: String, onWaterIntakeChange: (String) -> Unit, sleepHours: String, onSleepHoursChange: (String) -> Unit, stressLevel: String, onStressLevelChange: (String) -> Unit, diet: String, onDietChange: (String) -> Unit, smoking: Boolean, onSmokingChange: (Boolean) -> Unit, alcohol: Boolean, onAlcoholChange: (Boolean) -> Unit, exercise: String, onExerciseChange: (String) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Lifestyle & Habits", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("These factors affect skin health", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate)
+        Text("These factors affect skin health", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         SectionH("Sun Exposure"); DropdownField("Daily sun exposure", sunExposure, SUN_EXPOSURES) { onSunExposureChange(it) }
         SectionH("Water Intake"); OutlinedTextField(value = waterIntake, onValueChange = onWaterIntakeChange, label = { Text("Glasses per day") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), singleLine = true)
         SectionH("Sleep Hours"); OutlinedTextField(value = sleepHours, onValueChange = onSleepHoursChange, label = { Text("Hours per night") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), singleLine = true)
@@ -212,16 +212,16 @@ private fun SummaryPage(displayName: String, age: String, gender: String, skinTy
     val langLabel = LANGUAGES.find { it.first == language }?.second ?: "English"
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Summary", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Review your details", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate)
+        Text("Review your details", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         NeuSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Name", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate); Text(displayName.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Age", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate); Text(age.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Gender", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate); Text(gender.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Skin Type", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate); Text(skinType.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Skin Tone", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate); Text(skinTone.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Language", style = MaterialTheme.typography.bodyMedium, color = DermoColors.Slate); Text(langLabel, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Name", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(displayName.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Age", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(age.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Gender", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(gender.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Skin Type", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(skinType.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Skin Tone", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(skinTone.ifEmpty { "—" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Language", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(langLabel, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium) }
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.dermoai.core.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -50,6 +52,15 @@ object DermoColors {
     val DarkSlate  = Color(0xFF94A3B8)
     val DarkLine   = Color(0xFF334155)
 
+    // Dark-mode semantic text — CoralText/AmberText/SageText are dark,
+    // saturated colors tuned only for light surfaces (see textOnLight's doc);
+    // reused verbatim in dark mode they sit near-isometric in luminance with
+    // DarkCanvas/DarkCard and fail contrast. These are brighter counterparts,
+    // ≥4.5:1 against both DarkCanvas (#0F172A) and DarkCard (#232F45).
+    val DarkCoralText = Color(0xFFFF6B5B)  // ~6.4:1 / ~4.8:1
+    val DarkAmberText = Color(0xFFF5B84A)  // ~10.1:1 / ~7.6:1
+    val DarkSageText  = Color(0xFF6FD9A8)  // ~10.4:1 / ~7.8:1
+
     // Dark soft depth — subtle dual shadows on slate surfaces
     val DarkShadowHi = Color(0xFF26324B)
     val DarkShadowLo = Color(0xFF0A101F)
@@ -81,4 +92,40 @@ object DermoColors {
         Amber, WarmAmber -> AmberText
         else -> accent
     }
+
+    /**
+     * Whether the composition is currently rendering DermoTheme's dark
+     * scheme, inferred from [LocalNeuShadowColors] rather than
+     * `isSystemInDarkTheme()` — the app has its own manual dark-mode toggle
+     * that can disagree with the system setting, and `DermoTheme` already
+     * threads that decision through this CompositionLocal for every screen.
+     */
+    val isDark: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalNeuShadowColors.current.shadowHi == DarkShadowHi
+
+    /** [CoralText] in light mode, a brighter equivalent in dark mode. See [DarkCoralText]. */
+    val coralText: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = if (isDark) DarkCoralText else CoralText
+
+    /** [AmberText] in light mode, a brighter equivalent in dark mode. See [DarkAmberText]. */
+    val amberText: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = if (isDark) DarkAmberText else AmberText
+
+    /** [SageText] in light mode, a brighter equivalent in dark mode. See [DarkSageText]. */
+    val sageText: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = if (isDark) DarkSageText else SageText
+
+    /** [Slate] in light mode, [DarkSlate] in dark mode. */
+    val slateText: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = if (isDark) DarkSlate else Slate
 }

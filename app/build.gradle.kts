@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,6 +9,32 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.firebase.crashlytics)
 }
+
+// ── Appwrite backend sync configuration ──────────────────────────────────────
+// Endpoint / project id / database id, read from `local.properties` (gitignored)
+// with EMPTY defaults so a clone with no backend provisioned still builds and
+// runs — it degrades to local-only mode, the same way the app degrades when the
+// Firebase config is the placeholder project.
+//
+// These three values are NOT secrets: every Appwrite client app ships them and
+// Appwrite's security model assumes the client knows them, enforcing access
+// server-side from the user's session plus document permissions. An Appwrite
+// **API key** must NEVER appear here or anywhere else in the app — an APK is
+// readable with `unzip` + `strings`. Server-side provisioning that needs a key
+// is `tools/appwrite/setup_collections.py`, which reads APPWRITE_API_KEY from
+// the environment and never writes it to disk.
+//
+// `core/data/build.gradle.kts` repeats this block because the sync layer lives
+// there and an Android library sees only its own BuildConfig, never the app's.
+// The copy here exists so app-level code can read the same values without
+// reaching across modules.
+val appwriteProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun appwriteProperty(key: String): String =
+    (appwriteProperties.getProperty(key) ?: "").trim()
 
 android {
     namespace = "com.dermoai"
@@ -20,6 +48,9 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("boolean", "FIREBASE_CONFIGURED", "false")
+        buildConfigField("String", "APPWRITE_ENDPOINT", "\"${appwriteProperty("APPWRITE_ENDPOINT")}\"")
+        buildConfigField("String", "APPWRITE_PROJECT_ID", "\"${appwriteProperty("APPWRITE_PROJECT_ID")}\"")
+        buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${appwriteProperty("APPWRITE_DATABASE_ID")}\"")
     }
 
     buildTypes {
@@ -76,6 +107,7 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":feature:faq"))
     implementation(project(":feature:finder"))
+    implementation(project(":feature:doctor"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

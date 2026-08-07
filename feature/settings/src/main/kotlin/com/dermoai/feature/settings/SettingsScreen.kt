@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.material.icons.outlined.Science
 import com.dermoai.core.data.preferences.UserPreferencesDataStore
 import com.dermoai.core.database.dao.UserProfileDetailsDao
 import com.dermoai.core.database.entity.UserProfileDetailsEntity
@@ -62,6 +63,8 @@ import com.dermoai.core.domain.usecase.auth.ObserveAuthStateUseCase
 import com.dermoai.core.ui.components.GradientHeader
 import com.dermoai.core.ui.components.NeuSurface
 import com.dermoai.core.ui.theme.DermoColors
+import com.dermoai.feature.settings.demo.DemoDataSeeder
+import com.dermoai.feature.settings.demo.DemoSeedMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -86,6 +89,7 @@ class SettingsViewModel @Inject constructor(
     private val prefs: UserPreferencesDataStore,
     private val userProfileDetailsDao: UserProfileDetailsDao,
     private val observeAuthState: ObserveAuthStateUseCase,
+    private val demoDataSeeder: DemoDataSeeder,
 ) : ViewModel() {
 
     private val _envAlertsEnabled = MutableStateFlow(true)
@@ -109,6 +113,15 @@ class SettingsViewModel @Inject constructor(
     private val _deepSeekModel = MutableStateFlow(UserPreferencesDataStore.DEFAULT_DEEPSEEK_MODEL)
     val deepSeekModel: StateFlow<String> = _deepSeekModel.asStateFlow()
 
+    private var signedInUserId: String? = null
+
+    /** Feedback line for the debug "Load Demo Data" row. Null when idle. */
+    private val _demoSeedStatus = MutableStateFlow<String?>(null)
+    val demoSeedStatus: StateFlow<String?> = _demoSeedStatus.asStateFlow()
+
+    private val _demoSeedInProgress = MutableStateFlow(false)
+    val demoSeedInProgress: StateFlow<Boolean> = _demoSeedInProgress.asStateFlow()
+
     init {
         viewModelScope.launch {
             val base = combine(
@@ -127,8 +140,47 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             withTimeoutOrNull(5_000) { observeAuthState().first { it != null } }?.id?.let { uid ->
+                signedInUserId = uid
                 _profile.value = userProfileDetailsDao.getById(uid)
             }
+        }
+    }
+
+    /**
+     * **Debug-only.** Populates the signed-in account with realistic demo data
+     * via [DemoDataSeeder] — see that class for exactly what gets written and
+     * why it is safe to tap more than once. The call site in [SettingsScreen]
+     * only renders this action when `BuildConfig.DEBUG` is true; this method
+     * carries no guard of its own, so it must never be reachable from anywhere
+     * else.
+     */
+    fun loadDemoData() {
+        if (_demoSeedInProgress.value) return
+        viewModelScope.launch {
+            val uid = signedInUserId
+                ?: withTimeoutOrNull(5_000) { observeAuthState().first { it != null } }?.id
+            if (uid == null) {
+                _demoSeedStatus.value = "No signed-in account to seed."
+                return@launch
+            }
+            _demoSeedInProgress.value = true
+            _demoSeedStatus.value = null
+            runCatching { demoDataSeeder.seed(uid) }
+                .onSuccess { result ->
+                    _demoSeedStatus.value = when (result.mode) {
+                        DemoSeedMode.DOCTOR ->
+                            "Seeded ${result.peopleSeeded} patients, ${result.scansSeeded} scans."
+                        DemoSeedMode.PATIENT ->
+                            "Seeded ${result.scansSeeded} scans across your timeline."
+                    }
+                    // Skin profile dialog reads from Room once at init; refresh it
+                    // so the freshly seeded demographics show without a restart.
+                    _profile.value = userProfileDetailsDao.getById(uid)
+                }
+                .onFailure {
+                    _demoSeedStatus.value = "Demo data seeding failed: ${it.message ?: "unknown error"}"
+                }
+            _demoSeedInProgress.value = false
         }
     }
 
@@ -212,6 +264,8 @@ fun SettingsScreen(
     val profile by viewModel.profile.collectAsState()
     val deepSeekApiKey by viewModel.deepSeekApiKey.collectAsState()
     val deepSeekModel by viewModel.deepSeekModel.collectAsState()
+    val demoSeedStatus by viewModel.demoSeedStatus.collectAsState()
+    val demoSeedInProgress by viewModel.demoSeedInProgress.collectAsState()
     var signOutDialog by remember { mutableStateOf(false) }
     var langExpanded by remember { mutableStateOf(false) }
     var profileDialog by remember { mutableStateOf(false) }
@@ -275,6 +329,18 @@ fun SettingsScreen(
             SettingsRow(Icons.Outlined.FileDownload, "Export my data") { Text("Coming soon", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             SettingsRow(Icons.Outlined.Logout, "Sign out") {
                 TextButton(onClick = { signOutDialog = true }) { Text("Sign out", color = DermoColors.SoftCoral) }
+            }
+            // ── Debug-only demo data shortcut ───────────────────────────────
+            // Never present in a release build: BuildConfig.DEBUG is false
+            // there, so this whole block — including the button that reaches
+            // DemoDataSeeder — simply isn't emitted. See SettingsViewModel
+            // .loadDemoData and DemoDataSeeder's class doc for what it writes.
+            if (BuildConfig.DEBUG) {
+                DemoDataCard(
+                    inProgress = demoSeedInProgress,
+                    status = demoSeedStatus,
+                    onLoadDemoData = { viewModel.loadDemoData() },
+                )
             }
             Spacer(Modifier.height(32.dp))
             Text("DermoAI v1.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth())
@@ -362,6 +428,49 @@ private fun AiAssistantCard(
                 TextButton(onClick = { onSaveModel(modelDraft); modelSaved = true }) { Text(stringResource(R.string.settings_ai_save)) }
                 if (modelSaved) {
                     Text(stringResource(R.string.settings_ai_key_saved), style = MaterialTheme.typography.labelMedium, color = DermoColors.SageText)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Debug-only affordance that fills the signed-in account with realistic demo
+ * data — a doctor gets a small, differentiated patient roster; a patient gets
+ * a rich scan history. See [DemoDataSeeder] for exactly what is written.
+ *
+ * Labelled plainly as a debug tool, the same way [DoctorStatusScreen]'s debug
+ * verification shortcut is: a button that merely said "Load Demo Data" with
+ * no framing would read, to a reviewer skimming a screen recording, like a
+ * shipped feature rather than a competition-prep tool.
+ */
+@Composable
+private fun DemoDataCard(
+    inProgress: Boolean,
+    status: String?,
+    onLoadDemoData: () -> Unit,
+) {
+    NeuSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Science, null, Modifier.size(24.dp), tint = DermoColors.TealAccent)
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("Load Demo Data", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "DEBUG BUILD ONLY — fills this account with fictional patients/scans for a demo.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DermoColors.CoralText,
+                    )
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onLoadDemoData, enabled = !inProgress) {
+                    Text(if (inProgress) "Seeding…" else "Load Demo Data")
+                }
+                if (status != null) {
+                    Spacer(Modifier.width(4.dp))
+                    Text(status, style = MaterialTheme.typography.labelMedium, color = DermoColors.SageText)
                 }
             }
         }
