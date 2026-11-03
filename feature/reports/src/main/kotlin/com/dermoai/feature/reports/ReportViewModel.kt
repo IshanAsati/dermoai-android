@@ -4,18 +4,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dermoai.core.common.result.AppResult
 import com.dermoai.core.database.dao.DailyCheckInDao
+import com.dermoai.core.database.dao.DoctorClinicalNoteDao
+import com.dermoai.core.database.dao.DoctorShareDao
 import com.dermoai.core.database.dao.ScanPredictionDao
 import com.dermoai.core.database.dao.SkinScanDao
+import com.dermoai.core.database.entity.DoctorClinicalNoteEntity
+import com.dermoai.core.database.entity.DoctorSharePasscodeEntity
 import com.dermoai.core.reports.DoctorReportGenerator
 import com.dermoai.core.reports.ReportInput
 import com.dermoai.core.reports.ScanWithPredictions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.UUID
 import javax.inject.Inject
 
 sealed interface PdfUiState {
@@ -30,6 +37,8 @@ class ReportViewModel @Inject constructor(
     private val scanDao: SkinScanDao,
     private val predictionDao: ScanPredictionDao,
     private val checkInDao: DailyCheckInDao,
+    private val doctorShareDao: DoctorShareDao,
+    private val doctorClinicalNoteDao: DoctorClinicalNoteDao,
     private val generator: DoctorReportGenerator,
 ) : ViewModel() {
 
@@ -40,6 +49,67 @@ class ReportViewModel @Inject constructor(
     var includePredictions = MutableStateFlow(true)
     var includeSkinMind = MutableStateFlow(true)
     var selectedRangeDays = MutableStateFlow(30)
+    var activePasscode = MutableStateFlow<String?>(null)
+
+    fun activePasscodes(userId: String): StateFlow<List<DoctorSharePasscodeEntity>> =
+        doctorShareDao.observeByUserId(userId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun clinicalNotes(userId: String): StateFlow<List<DoctorClinicalNoteEntity>> =
+        doctorClinicalNoteDao.observeByUserId(userId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Issues a fresh `DR-######` code scoped to the currently selected date
+     * range. Earlier codes stay alive until they are revoked, so a patient who
+     * re-reads a code to a doctor does not silently invalidate the last one.
+     */
+    fun generatePasscode(userId: String) {
+        viewModelScope.launch {
+            val randomNum = (100000..999999).random()
+            val passcodeStr = "DR-$randomNum"
+            val entity = DoctorSharePasscodeEntity(
+                id = UUID.randomUUID().toString(),
+                userId = userId,
+                passcode = passcodeStr,
+                dateRangeDays = selectedRangeDays.value,
+            )
+            doctorShareDao.upsert(entity)
+            activePasscode.value = passcodeStr
+        }
+    }
+
+    fun revokePasscode(passcodeId: String) {
+        viewModelScope.launch {
+            doctorShareDao.revokePasscode(passcodeId)
+        }
+    }
+
+    fun addClinicalNote(
+        userId: String,
+        doctorName: String,
+        clinicName: String,
+        impression: String,
+        recommendation: String,
+    ) {
+        viewModelScope.launch {
+            val note = DoctorClinicalNoteEntity(
+                id = UUID.randomUUID().toString(),
+                userId = userId,
+                doctorName = doctorName.ifBlank { "Dermatologist" },
+                clinicName = clinicName,
+                clinicalImpression = impression,
+                recommendedTreatment = recommendation,
+            )
+            doctorClinicalNoteDao.upsert(note)
+        }
+    }
+
+    fun deleteClinicalNote(noteId: String) {
+        viewModelScope.launch {
+            doctorClinicalNoteDao.deleteById(noteId)
+        }
+    }
 
     fun generate(userId: String, displayName: String) {
         _state.value = PdfUiState.Generating
@@ -51,6 +121,11 @@ class ReportViewModel @Inject constructor(
                 ScanWithPredictions(scan, predictions)
             }
             val checkIns = checkInDao.observeByUserId(userId).first().filter { it.createdAt >= cutoff }
+            val notes = doctorClinicalNoteDao.observeByUserId(userId).first().map { note ->
+                val clinic = note.clinicName.ifEmpty { "Clinic" }
+                val treatment = if (note.recommendedTreatment.isNotEmpty()) " — ${note.recommendedTreatment}" else ""
+                "${note.doctorName} ($clinic): ${note.clinicalImpression}$treatment"
+            }
             val rangeLabel = "Last ${selectedRangeDays.value} days"
 
             val input = ReportInput(
@@ -61,6 +136,8 @@ class ReportViewModel @Inject constructor(
                 includeSkinMind = includeSkinMind.value,
                 scans = scanEntries,
                 checkIns = checkIns,
+                passcode = activePasscode.value ?: "",
+                clinicalNotes = notes,
             )
             when (val result = generator.generate(input)) {
                 is AppResult.Success -> _state.value = PdfUiState.Ready(result.data)

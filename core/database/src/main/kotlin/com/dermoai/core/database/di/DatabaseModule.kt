@@ -64,4 +64,11 @@ object DatabaseModule {
 
     @Provides
     fun provideAuditEntryDao(database: DermoDatabase) = database.auditEntryDao()
+
+    // Doctor passcode sharing (schema v7).
+    @Provides
+    fun provideDoctorShareDao(database: DermoDatabase) = database.doctorShareDao()
+
+    @Provides
+    fun provideDoctorClinicalNoteDao(database: DermoDatabase) = database.doctorClinicalNoteDao()
 }
