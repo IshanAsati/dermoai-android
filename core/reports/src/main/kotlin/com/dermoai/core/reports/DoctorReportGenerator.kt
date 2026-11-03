@@ -30,6 +30,8 @@ data class ReportInput(
     val includeSkinMind: Boolean,
     val scans: List<ScanWithPredictions>,
     val checkIns: List<DailyCheckInEntity> = emptyList(),
+    val passcode: String = "",
+    val clinicalNotes: List<String> = emptyList(),
 )
 
 data class ScanWithPredictions(
@@ -56,9 +58,19 @@ class DoctorReportGenerator @Inject constructor(
             val smallPaint = Paint().apply { textSize = 9f; color = Color.GRAY }
             val disclaimPaint = Paint().apply { textSize = 8f; color = Color.GRAY; textAlign = Paint.Align.CENTER }
             val imagePaint = Paint().apply { isFilterBitmap = true }
+            val passcodePaint = Paint().apply {
+                textSize = 11f
+                typeface = Typeface.DEFAULT_BOLD
+                color = Color.parseColor("#0D9488")
+            }
 
             // Header
             canvas.drawText("DermoAI Doctor Report", 48f, y, titlePaint)
+            // The access code travels with the file so a dermatologist reading a
+            // forwarded PDF can still tie it to the patient's sharing grant.
+            if (input.passcode.isNotEmpty()) {
+                canvas.drawText("Passcode: ${input.passcode}", PAGE_WIDTH - 180f, y, passcodePaint)
+            }
             y += 36f
             canvas.drawText("Patient: ${input.patientName}", 48f, y, bodyPaint)
             y += 18f
@@ -138,6 +150,34 @@ class DoctorReportGenerator @Inject constructor(
                 val avgStress = input.checkIns.map { it.stressLevel }.average().let { "%.1f".format(it) }
                 canvas.drawText("  $avgFeel / 5 avg skin feel  •  $avgSleep / 5 avg sleep  •  $avgStress / 5 avg stress", 48f, y, bodyPaint)
                 y += 24f
+            }
+
+            // Doctor clinical impressions
+            if (input.clinicalNotes.isNotEmpty()) {
+                if (y > PAGE_HEIGHT - 160f) {
+                    drawPageNumber(canvas, pageNumber, pageNumber, disclaimPaint)
+                    document.finishPage(page)
+                    page = document.startPage(pageInfo)
+                    canvas = page.canvas
+                    y = PAGE_TOP_MARGIN
+                    pageNumber++
+                }
+                y += 12f
+                canvas.drawText("───── Clinical Impressions & Guidance ─────", 48f, y, headingPaint)
+                y += 24f
+                for (note in input.clinicalNotes) {
+                    if (y > PAGE_HEIGHT - 80f) {
+                        drawPageNumber(canvas, pageNumber, pageNumber, disclaimPaint)
+                        document.finishPage(page)
+                        page = document.startPage(pageInfo)
+                        canvas = page.canvas
+                        y = PAGE_TOP_MARGIN
+                        pageNumber++
+                    }
+                    canvas.drawText("• $note", 48f, y, bodyPaint)
+                    y += 16f
+                }
+                y += 12f
             }
 
             // Educate footer

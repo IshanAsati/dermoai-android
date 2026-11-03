@@ -4,8 +4,10 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.dermoai.core.database.dao.AuditEntryDao
 import com.dermoai.core.database.dao.DailyCheckInDao
+import com.dermoai.core.database.dao.DoctorClinicalNoteDao
 import com.dermoai.core.database.dao.DoctorInviteDao
 import com.dermoai.core.database.dao.DoctorProfileDao
+import com.dermoai.core.database.dao.DoctorShareDao
 import com.dermoai.core.database.dao.JournalEntryDao
 import com.dermoai.core.database.dao.PatientLinkDao
 import com.dermoai.core.database.dao.RoutineStepDao
@@ -17,8 +19,10 @@ import com.dermoai.core.database.dao.UserProfileDao
 import com.dermoai.core.database.dao.UserProfileDetailsDao
 import com.dermoai.core.database.entity.AuditEntryEntity
 import com.dermoai.core.database.entity.DailyCheckInEntity
+import com.dermoai.core.database.entity.DoctorClinicalNoteEntity
 import com.dermoai.core.database.entity.DoctorInviteEntity
 import com.dermoai.core.database.entity.DoctorProfileEntity
+import com.dermoai.core.database.entity.DoctorSharePasscodeEntity
 import com.dermoai.core.database.entity.JournalEntryEntity
 import com.dermoai.core.database.entity.PatientLinkEntity
 import com.dermoai.core.database.entity.RoutineStepEntity
@@ -32,6 +36,11 @@ import com.dermoai.core.database.entity.UserProfileDetailsEntity
 /**
  * Version 6 adds the doctor dashboard tables (doctor_profiles, patient_links,
  * doctor_invites, audit_entries) and a `role` column on user_profiles.
+ *
+ * Version 7 adds the passcode sharing tables (doctor_share_passcodes,
+ * doctor_clinical_notes): a patient generates a `DR-######` code that scopes
+ * which date range a dermatologist may read, and logs the advice they got back
+ * so it can travel into the doctor PDF.
  *
  * No migration is written: DatabaseModule still falls back to destructive
  * migration and there are no production users, so the honest move is to say so
@@ -54,8 +63,10 @@ import com.dermoai.core.database.entity.UserProfileDetailsEntity
         PatientLinkEntity::class,
         DoctorInviteEntity::class,
         AuditEntryEntity::class,
+        DoctorSharePasscodeEntity::class,
+        DoctorClinicalNoteEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class DermoDatabase : RoomDatabase() {
@@ -72,4 +83,6 @@ abstract class DermoDatabase : RoomDatabase() {
     abstract fun patientLinkDao(): PatientLinkDao
     abstract fun doctorInviteDao(): DoctorInviteDao
     abstract fun auditEntryDao(): AuditEntryDao
+    abstract fun doctorShareDao(): DoctorShareDao
+    abstract fun doctorClinicalNoteDao(): DoctorClinicalNoteDao
 }
