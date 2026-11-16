@@ -1,5 +1,6 @@
 package com.dermoai.feature.finder
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,18 +16,22 @@ import javax.inject.Inject
 sealed interface FinderUiState {
     data object Idle : FinderUiState
     data object Locating : FinderUiState
-    data object Loading : FinderUiState
-    data class Ready(
-        val clinics: List<Clinic>,
-        val isBroadFallback: Boolean,
-        val centerLat: Double,
-        val centerLon: Double,
-    ) : FinderUiState
-
     data object NoPermission : FinderUiState
     data object NoLocation : FinderUiState
-    data object Empty : FinderUiState
-    data class Error(val message: String) : FinderUiState
+
+    /**
+     * The user's position is known, so the map is shown straight away. The clinic
+     * search runs on top of it: [searching] while in flight, [searchFailed] when no
+     * server could be reached (the map stays usable either way).
+     */
+    data class Located(
+        val lat: Double,
+        val lon: Double,
+        val clinics: List<Clinic> = emptyList(),
+        val isBroadFallback: Boolean = false,
+        val searching: Boolean = true,
+        val searchFailed: Boolean = false,
+    ) : FinderUiState
 }
 
 @HiltViewModel
@@ -39,9 +44,6 @@ class FinderViewModel @Inject constructor(
         private set
 
     var selectedClinic by mutableStateOf<Clinic?>(null)
-        private set
-
-    var userLocation by mutableStateOf<Pair<Double, Double>?>(null)
         private set
 
     /** Called when the user grants/denies the location permission. */
@@ -68,30 +70,33 @@ class FinderViewModel @Inject constructor(
 
     fun search(lat: Double, lon: Double) {
         viewModelScope.launch {
-            state = FinderUiState.Loading
-            userLocation = lat to lon
             selectedClinic = null
+            state = FinderUiState.Located(lat, lon, searching = true)
             runCatching { repository.findNearby(lat, lon) }
                 .onSuccess { result ->
-                    state = if (result.clinics.isEmpty()) {
-                        FinderUiState.Empty
-                    } else {
-                        FinderUiState.Ready(
-                            clinics = result.clinics,
-                            isBroadFallback = result.isBroadFallback,
-                            centerLat = lat,
-                            centerLon = lon,
-                        )
-                    }
+                    state = FinderUiState.Located(
+                        lat = lat,
+                        lon = lon,
+                        clinics = result.clinics,
+                        isBroadFallback = result.isBroadFallback,
+                        searching = false,
+                    )
                 }
                 .onFailure { e ->
-                    state = FinderUiState.Error(e.message ?: "Search failed")
+                    Log.w("DermoFinder", "Search failed", e)
+                    state = FinderUiState.Located(lat, lon, searching = false, searchFailed = true)
                 }
         }
     }
 
     fun selectClinic(clinic: Clinic) {
         selectedClinic = clinic
+    }
+
+    /** Selects by id — used by taps on map markers. */
+    fun selectClinicById(id: String) {
+        val clinics = (state as? FinderUiState.Located)?.clinics ?: return
+        clinics.firstOrNull { it.id == id }?.let { selectedClinic = it }
     }
 
     fun clearSelection() {

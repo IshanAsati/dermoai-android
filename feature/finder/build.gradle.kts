@@ -43,7 +43,6 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.osmdroid.android)
     implementation(libs.okhttp)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
