@@ -6,6 +6,7 @@ import com.dermoai.core.domain.ml.InferenceResult
 import com.dermoai.core.domain.model.ConditionSeverity
 import com.dermoai.core.domain.model.HealthyGate
 import com.dermoai.core.domain.model.ModelConfig
+import com.dermoai.core.domain.model.MoleGate
 import com.dermoai.core.domain.model.SkinCondition
 import com.dermoai.core.ml.preprocessing.ImagePreprocessor
 import org.tensorflow.lite.Interpreter
@@ -21,6 +22,7 @@ class TfliteInterpreterHolder @Inject constructor(
 ) {
     private var interpreter: Interpreter? = null
     private var healthyGate: HealthyGate? = null
+    private var moleGate: MoleGate? = null
 
     /** Output tensor indices, resolved by width since TFLite does not preserve order. */
     private var logitsOutput = 0
@@ -28,7 +30,12 @@ class TfliteInterpreterHolder @Inject constructor(
 
     val isLoaded: Boolean get() = interpreter != null
 
-    fun load(context: Context, config: ModelConfig, gate: HealthyGate? = null) {
+    fun load(
+        context: Context,
+        config: ModelConfig,
+        gate: HealthyGate? = null,
+        moleGate: MoleGate? = null,
+    ) {
         release()
         val modelBuffer = loadModelFile(context, MODEL_ASSET_PATH)
         val options = Interpreter.Options().apply {
@@ -37,9 +44,10 @@ class TfliteInterpreterHolder @Inject constructor(
         val created = Interpreter(modelBuffer, options)
         resolveOutputs(created, config)
         interpreter = created
-        // A gate is useless without the feature output to score, and older
-        // single-output models predate it.
+        // Both gates are useless without the feature output to score, and older
+        // single-output models predate them.
         healthyGate = gate.takeIf { featuresOutput >= 0 }
+        this.moleGate = moleGate.takeIf { featuresOutput >= 0 }
     }
 
     private fun resolveOutputs(interpreter: Interpreter, config: ModelConfig) {
@@ -94,6 +102,19 @@ class TfliteInterpreterHolder @Inject constructor(
             )
         }
 
+        // Corrects the head's other verified confusion: a real mole sometimes
+        // outranked by ACK/SEK. See MoleGate.applyTo for why this can never
+        // touch a malignant call.
+        val mGate = moleGate
+        if (mGate != null && featureVector != null) {
+            predictions = mGate.applyTo(
+                ranked = predictions,
+                features = featureVector,
+                moleLabel = labels.getOrElse(NEV_INDEX) { "Nevus / Mole (NEV)" },
+                moleCode = LABEL_CODES.getOrElse(NEV_INDEX) { "NEV" },
+            )
+        }
+
         val top = predictions.first()
         return InferenceResult(
             topPrediction = top,
@@ -107,6 +128,7 @@ class TfliteInterpreterHolder @Inject constructor(
         interpreter?.close()
         interpreter = null
         healthyGate = null
+        moleGate = null
         featuresOutput = -1
     }
 
@@ -149,8 +171,11 @@ class TfliteInterpreterHolder @Inject constructor(
     companion object {
         const val MODEL_ASSET_PATH = "ml/skin_model.tflite"
 
-        /** Width of the penultimate feature vector the healthy gate scores. */
+        /** Width of the penultimate feature vector the healthy/mole gates score. */
         const val FEATURE_DIM = 1024
+
+        /** Position of NEV in LABEL_CODES/labels.txt -- the mole gate's promotion target. */
+        const val NEV_INDEX = 2
 
         val LABEL_CODES = listOf(
             "BCC", "ACK", "NEV", "SEK", "SCC", "MEL",

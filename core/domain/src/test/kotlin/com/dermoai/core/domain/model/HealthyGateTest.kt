@@ -19,7 +19,8 @@ class HealthyGateTest {
         weights: FloatArray = floatArrayOf(1f, 0f, 0f),
         bias: Float = 0f,
         threshold: Float = 0.65f,
-    ) = HealthyGate(weights, bias, threshold)
+        vetoThreshold: Float = 0f,
+    ) = HealthyGate(weights, bias, threshold, vetoThreshold)
 
     private fun condition(code: String, confidence: Float) =
         SkinCondition(label = code, code = code, confidence = confidence,
@@ -137,6 +138,49 @@ class HealthyGateTest {
         val out = g.applyTo(withHealthy, floatArrayOf(1f, 0f, 0f), "Healthy Skin", "Healthy")
         assertEquals(1, out.count { it.code == "Healthy" })
         assertEquals(withHealthy.size, out.size)
+    }
+
+    // ── applyTo: the veto ────────────────────────────────────────────────────
+    // The head's own class-11 shortcut can call a real lesion "Healthy" with
+    // real confidence; threshold alone can't stop that, since it only ever
+    // pushes a result toward Healthy. These cover the opposite direction.
+
+    private val headSaysHealthy = listOf(
+        condition("Healthy", 0.61f), condition("ACK", 0.10f), condition("NEV", 0.07f))
+
+    @Test
+    fun `gate below veto threshold drops a head-only healthy call`() {
+        // sigmoid(-5) = 0.0067, well under a 0.3 veto threshold.
+        val g = gate(weights = floatArrayOf(1f, 0f, 0f), threshold = 0.65f, vetoThreshold = 0.3f)
+        val out = g.applyTo(headSaysHealthy, floatArrayOf(-5f, 0f, 0f), "Healthy Skin", "Healthy")
+        assertFalse("a false Healthy the gate disagrees with must not survive",
+            out.any { it.code == "Healthy" })
+        assertEquals(listOf("ACK", "NEV"), out.map { it.code })
+    }
+
+    @Test
+    fun `gate between veto and main threshold leaves the ranking untouched`() {
+        // sigmoid(0) = 0.5 -- not confident enough to override, not low enough
+        // to veto either, so the head's own call stands.
+        val g = gate(weights = floatArrayOf(1f, 0f, 0f), threshold = 0.65f, vetoThreshold = 0.3f)
+        val out = g.applyTo(headSaysHealthy, floatArrayOf(0f, 0f, 0f), "Healthy Skin", "Healthy")
+        assertEquals(headSaysHealthy, out)
+    }
+
+    @Test
+    fun `veto does not touch a ranking whose top call is not healthy`() {
+        // Low gate score, but the head didn't claim Healthy anyway -- nothing to veto.
+        val g = gate(weights = floatArrayOf(1f, 0f, 0f), threshold = 0.65f, vetoThreshold = 0.3f)
+        val out = g.applyTo(ranked, floatArrayOf(-5f, 0f, 0f), "Healthy Skin", "Healthy")
+        assertEquals(ranked, out)
+    }
+
+    @Test
+    fun `default veto threshold of zero never vetoes`() {
+        // Gates loaded before this field existed must keep their old behavior.
+        val g = gate(weights = floatArrayOf(1f, 0f, 0f), threshold = 0.65f)
+        val out = g.applyTo(headSaysHealthy, floatArrayOf(-1000f, 0f, 0f), "Healthy Skin", "Healthy")
+        assertEquals(headSaysHealthy, out)
     }
 
     // ── equality ─────────────────────────────────────────────────────────────
