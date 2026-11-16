@@ -1,0 +1,9 @@
+# Not needed to build or run the app. Keeps uploads small and secrets out.
+.env*
+.demo
+.next
+node_modules
+tests
+playwright-report
+test-results
+coverage
