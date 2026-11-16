@@ -20,6 +20,17 @@ data class HealthyGate(
      * lesion-false-positive rate rather than for balanced accuracy.
      */
     val threshold: Float,
+    /**
+     * Below this, the gate isn't just failing to confirm "Healthy" -- it actively
+     * disagrees. The head's own class-11 shortcut (see class doc) sometimes fires
+     * on a real lesion photo with real confidence, and [threshold] alone can't
+     * catch that: it only ever pushes a result *toward* Healthy, never away from
+     * one the head invented on its own. When the head's top call is Healthy but
+     * the gate's independent read is this low, the call is dropped rather than
+     * shown as a reassurance it doesn't support. 0f (the default for gates
+     * predating this field) never vetoes, matching the old override-only behavior.
+     */
+    val vetoThreshold: Float = 0f,
 ) {
     /** Probability that [features] show normal skin rather than a lesion. */
     fun score(features: FloatArray): Float {
@@ -48,17 +59,35 @@ data class HealthyGate(
         healthyCode: String,
     ): List<SkinCondition> {
         val gateScore = score(features)
-        if (gateScore < threshold) return ranked
-        val healthy = SkinCondition(
-            label = healthyLabel,
-            code = healthyCode,
-            confidence = gateScore,
-            severity = ConditionSeverity.LOW,
-        )
-        val remainder = 1f - gateScore
-        return listOf(healthy) + ranked
-            .filterNot { it.code == healthyCode }
-            .map { it.copy(confidence = it.confidence * remainder) }
+        if (gateScore >= threshold) {
+            val healthy = SkinCondition(
+                label = healthyLabel,
+                code = healthyCode,
+                confidence = gateScore,
+                severity = ConditionSeverity.LOW,
+            )
+            // The head's 12-way softmax already assigns Healthy its own (lower)
+            // probability, so it's normally already in `ranked` -- rescaling by a
+            // flat `remainder` factor would double-count that mass. Renormalizing
+            // the remainder's own sum to 1 first keeps the total exact regardless
+            // of whether Healthy was already present.
+            val remainder = 1f - gateScore
+            val remaining = ranked.filterNot { it.code == healthyCode }
+            val remainingSum = remaining.sumOf { it.confidence.toDouble() }.toFloat()
+            val rescaled = if (remainingSum > 0f) {
+                remaining.map { it.copy(confidence = it.confidence / remainingSum * remainder) }
+            } else {
+                remaining
+            }
+            return listOf(healthy) + rescaled
+        }
+        // The gate isn't confident enough to override, but if it actively disagrees
+        // with a Healthy call the head made on its own, that call is unsupported --
+        // drop it so a lesion photo isn't shown back as a reassurance.
+        if (gateScore < vetoThreshold && ranked.firstOrNull()?.code == healthyCode) {
+            return ranked.filterNot { it.code == healthyCode }
+        }
+        return ranked
     }
 
     // FloatArray uses reference equality; compare contents so two gates loaded
@@ -68,9 +97,11 @@ data class HealthyGate(
         if (other !is HealthyGate) return false
         return weights.contentEquals(other.weights) &&
             bias == other.bias &&
-            threshold == other.threshold
+            threshold == other.threshold &&
+            vetoThreshold == other.vetoThreshold
     }
 
     override fun hashCode(): Int =
-        (weights.contentHashCode() * 31 + bias.hashCode()) * 31 + threshold.hashCode()
+        ((weights.contentHashCode() * 31 + bias.hashCode()) * 31 + threshold.hashCode()) * 31 +
+            vetoThreshold.hashCode()
 }

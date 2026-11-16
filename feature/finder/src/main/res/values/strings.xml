@@ -18,4 +18,6 @@
     <string name="finder_km">%1$s km</string>
     <string name="finder_m">%1$s m</string>
     <string name="finder_osmcopyright">© OpenStreetMap contributors</string>
+    <string name="finder_you">You</string>
+    <string name="finder_tiles_error">Map tiles cannot load — check your internet connection.</string>
 </resources>

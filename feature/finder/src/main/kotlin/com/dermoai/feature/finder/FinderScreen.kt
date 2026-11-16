@@ -1,6 +1,8 @@
 package com.dermoai.feature.finder
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,11 +11,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,15 +32,12 @@ import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,7 +45,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.dermoai.core.ui.components.GradientHeader
@@ -54,17 +54,11 @@ import com.dermoai.core.ui.components.NeuSurface
 import com.dermoai.core.ui.components.NeuSurfaceStyle
 import com.dermoai.core.ui.theme.DermoColors
 import com.dermoai.feature.finder.data.Clinic
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import java.io.File
 import java.util.Locale
 
 /**
- * Dermatologist finder: free OpenStreetMap tiles (osmdroid) + Overpass API
- * results, shown on an in-app map with a list and a detail card.
+ * Dermatologist finder: an OpenStreetMap map (Leaflet, in-app) with clinics from
+ * the Overpass API shown as pins, plus a list and a detail card.
  */
 @Composable
 fun FinderScreen(
@@ -101,24 +95,17 @@ fun FinderScreen(
                 onRequest = { permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
             )
             is FinderUiState.Locating -> CenterMessage(stringResource(R.string.finder_locating), loading = true)
-            is FinderUiState.Loading -> CenterMessage(stringResource(R.string.finder_searching), loading = true)
             is FinderUiState.NoLocation -> CenterMessage(
                 stringResource(R.string.finder_no_location),
                 retry = { viewModel.locateAndSearch() },
             )
-            is FinderUiState.Empty -> CenterMessage(
-                stringResource(R.string.finder_empty),
-                retry = { viewModel.locateAndSearch() },
-            )
-            is FinderUiState.Error -> CenterMessage(
-                stringResource(R.string.finder_error),
-                retry = { viewModel.locateAndSearch() },
-            )
-            is FinderUiState.Ready -> FinderContent(
+            is FinderUiState.Located -> FinderContent(
                 state = s,
                 selected = viewModel.selectedClinic,
                 onSelect = viewModel::selectClinic,
+                onSelectById = viewModel::selectClinicById,
                 onClearSelection = viewModel::clearSelection,
+                onRetry = { viewModel.search(s.lat, s.lon) },
             )
         }
     }
@@ -126,8 +113,7 @@ fun FinderScreen(
 
 /**
  * Centered status message. Shows a spinner only while work is in flight
- * ([loading]); terminal states (no location / empty / error) show the message
- * plus a retry button, without a spinner.
+ * ([loading]); terminal states show the message plus a retry button.
  */
 @Composable
 private fun CenterMessage(message: String, retry: (() -> Unit)? = null, loading: Boolean = false) {
@@ -176,110 +162,107 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
 
 @Composable
 private fun FinderContent(
-    state: FinderUiState.Ready,
+    state: FinderUiState.Located,
     selected: Clinic?,
     onSelect: (Clinic) -> Unit,
+    onSelectById: (String) -> Unit,
     onClearSelection: () -> Unit,
+    onRetry: () -> Unit,
 ) {
-    val context = LocalContext.current
-
-    val mapView = remember {
-        Configuration.getInstance().apply {
-            userAgentValue = "DermoAI/1.0"
-            // Scoped storage (API 29+) breaks osmdroid's default external path — use app cache.
-            osmdroidBasePath = File(context.cacheDir, "osmdroid")
-            osmdroidTileCache = File(context.cacheDir, "osmdroid/tiles")
-        }
-        MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(true)
-            controller.setZoom(13.0)
-        }
-    }
-    DisposableEffect(mapView) {
-        mapView.onResume()
-        onDispose { mapView.onDetach() }
-    }
-
-    var hasCentered by remember { mutableStateOf(false) }
-
-    // Draw markers whenever results change; center the map only once.
-    LaunchedEffect(state.clinics) {
-        mapView.overlays.removeAll { it is Marker }
-        val userMarker = Marker(mapView).apply {
-            position = GeoPoint(state.centerLat, state.centerLon)
-            title = "You"
-            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-        }
-        mapView.overlays.add(userMarker)
-        state.clinics.forEach { clinic ->
-            val marker = Marker(mapView).apply {
-                position = GeoPoint(clinic.lat, clinic.lon)
-                title = clinic.name
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                setOnMarkerClickListener { _, _ ->
-                    onSelect(clinic)
-                    true
-                }
-            }
-            mapView.overlays.add(marker)
-        }
-        if (!hasCentered) {
-            mapView.controller.setCenter(GeoPoint(state.centerLat, state.centerLon))
-            hasCentered = true
-        }
-        mapView.invalidate()
-    }
-
-    Column(Modifier.fillMaxSize()) {
-        AndroidView(
-            factory = { mapView },
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
-        if (state.isBroadFallback) {
-            Text(
-                text = stringResource(R.string.finder_broad_note),
-                style = MaterialTheme.typography.labelMedium,
-                color = DermoColors.AmberText,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+    // Keep the map and list above the system navigation bar (this screen has no bottom bar of its own).
+    Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+            LeafletMap(
+                userLat = state.lat,
+                userLon = state.lon,
+                clinics = state.clinics,
+                selectedId = selected?.id,
+                onSelect = onSelectById,
+                modifier = Modifier.fillMaxSize(),
             )
-        }
-        Text(
-            text = stringResource(R.string.finder_osmcopyright),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 20.dp),
-        )
-
-        if (selected != null) {
-            ClinicDetailCard(
-                clinic = selected,
-                onClose = onClearSelection,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-        } else {
-            Text(
-                text = stringResource(R.string.finder_select_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+            SearchStatus(
+                state = state,
+                onRetry = onRetry,
+                modifier = Modifier.align(Alignment.TopCenter).padding(10.dp),
             )
         }
 
-        LazyColumn(
-            Modifier.fillMaxWidth().height(220.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-        ) {
-            items(state.clinics, key = { it.id }) { clinic ->
-                ClinicRow(
-                    clinic = clinic,
-                    selected = clinic.id == selected?.id,
-                    onClick = { onSelect(clinic) },
+        if (state.clinics.isNotEmpty()) {
+            if (state.isBroadFallback) {
+                Text(
+                    text = stringResource(R.string.finder_broad_note),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = DermoColors.AmberText,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
                 )
             }
+            if (selected != null) {
+                ClinicDetailCard(
+                    clinic = selected,
+                    userLat = state.lat,
+                    userLon = state.lon,
+                    onClose = onClearSelection,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.finder_select_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                )
+            }
+
+            LazyColumn(
+                Modifier.fillMaxWidth().height(200.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+            ) {
+                items(state.clinics, key = { it.id }) { clinic ->
+                    ClinicRow(
+                        clinic = clinic,
+                        selected = clinic.id == selected?.id,
+                        onClick = { onSelect(clinic) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
         }
-        Spacer(Modifier.height(12.dp))
+    }
+}
+
+/** Small banner over the map: searching / failed (with retry) / nothing found. */
+@Composable
+private fun SearchStatus(state: FinderUiState.Located, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    val showEmpty = !state.searching && !state.searchFailed && state.clinics.isEmpty()
+    if (!state.searching && !state.searchFailed && !showEmpty) return
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shadowElevation = 4.dp,
+    ) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            when {
+                state.searching -> {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text(stringResource(R.string.finder_searching), style = MaterialTheme.typography.bodyMedium)
+                }
+                state.searchFailed -> {
+                    Text(
+                        stringResource(R.string.finder_error),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    TextButton(onClick = onRetry) { Text(stringResource(R.string.finder_retry)) }
+                }
+                else -> Text(stringResource(R.string.finder_empty), style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
 
@@ -319,7 +302,13 @@ private fun ClinicRow(clinic: Clinic, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ClinicDetailCard(clinic: Clinic, onClose: () -> Unit, modifier: Modifier = Modifier) {
+private fun ClinicDetailCard(
+    clinic: Clinic,
+    userLat: Double,
+    userLon: Double,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     NeuSurface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), style = NeuSurfaceStyle.Inset) {
         Column(Modifier.padding(14.dp)) {
@@ -340,7 +329,9 @@ private fun ClinicDetailCard(clinic: Clinic, onClose: () -> Unit, modifier: Modi
                         onClick = {
                             // OSM phone tags are user-editable — sanitize to dial-safe chars.
                             val digits = clinic.phone.filter { it.isDigit() || it in "+()- " }
-                            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$digits")))
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$digits")))
+                            }
                         },
                         containerColor = DermoColors.Teal,
                         contentColor = Color.White,
@@ -351,11 +342,7 @@ private fun ClinicDetailCard(clinic: Clinic, onClose: () -> Unit, modifier: Modi
                     }
                 }
                 NeuButton(
-                    onClick = {
-                        val label = Uri.encode(clinic.name)
-                        val uri = "geo:0,0?q=${clinic.lat},${clinic.lon}($label)"
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
-                    },
+                    onClick = { openDirections(context, clinic, userLat, userLon) },
                     containerColor = DermoColors.Teal,
                     contentColor = Color.White,
                 ) {
@@ -367,6 +354,27 @@ private fun ClinicDetailCard(clinic: Clinic, onClose: () -> Unit, modifier: Modi
         }
     }
 }
+
+/**
+ * Opens turn-by-turn directions in the user's maps app. A phone with no maps app
+ * used to crash here (startActivity throws ActivityNotFoundException), so fall
+ * back to the same route on openstreetmap.org in the browser.
+ */
+private fun openDirections(context: Context, clinic: Clinic, userLat: Double, userLon: Double) {
+    val label = Uri.encode(clinic.name)
+    val geo = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${clinic.lat},${clinic.lon}($label)"))
+    try {
+        context.startActivity(geo)
+    } catch (_: ActivityNotFoundException) {
+        val web = Uri.parse(
+            "https://www.openstreetmap.org/directions?route=" +
+                "${userLat.fmt()}%2C${userLon.fmt()}%3B${clinic.lat.fmt()}%2C${clinic.lon.fmt()}"
+        )
+        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, web)) }
+    }
+}
+
+private fun Double.fmt(): String = String.format(Locale.US, "%.6f", this)
 
 private fun formatDistance(meters: Double): String = when {
     meters >= 1000 -> String.format(Locale.US, "%.1f km", meters / 1000)

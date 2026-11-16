@@ -88,8 +88,7 @@ class HomeViewModel @Inject constructor(
             val cached = envRepository.cachedConditions()
             if (cached != null) {
                 _currentAlert.value = EnvironmentAlertEvaluator.evaluate(cached)
-                _cachedEnvLabel.value =
-                    if (cached.locationLabel.isNotEmpty()) cached.locationLabel else "Updated ${android.text.format.DateFormat.format("MMM d, h:mm a", cached.fetchedAt)}"
+                _cachedEnvLabel.value = envLabel(cached)
             }
             if (locationProvider.hasCoarsePermission()) {
                 val loc = locationProvider.lastCoarseLocation()
@@ -100,9 +99,7 @@ class HomeViewModel @Inject constructor(
                     when (val result = envRepository.fetchCurrent(loc.first, loc.second)) {
                         is AppResult.Success -> {
                             _currentAlert.value = EnvironmentAlertEvaluator.evaluate(result.data)
-                            _cachedEnvLabel.value =
-                                if (result.data.locationLabel.isNotEmpty()) result.data.locationLabel
-                                else "Updated ${android.text.format.DateFormat.format("MMM d, h:mm a", result.data.fetchedAt)}"
+                            _cachedEnvLabel.value = envLabel(result.data)
                         }
                         is AppResult.Error -> {
                             // Fetch failed — keep last known conditions as-is.
@@ -114,6 +111,13 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** Small caption under the alert card, e.g. "AQI 168 · Updated Nov 16, 7:45 PM". */
+    private fun envLabel(c: com.dermoai.core.environment.WeatherConditions): String {
+        val base = if (c.locationLabel.isNotEmpty()) c.locationLabel
+        else "Updated ${android.text.format.DateFormat.format("MMM d, h:mm a", c.fetchedAt)}"
+        return c.aqi?.let { "AQI $it · $base" } ?: base
     }
 
     private fun computeStreak(checkIns: List<com.dermoai.core.database.entity.DailyCheckInEntity>): Int {

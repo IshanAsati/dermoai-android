@@ -81,10 +81,20 @@ fun HomeDashboardScreen(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> if (granted) viewModel.refresh(userId) }
 
+    // Android 13+ needs a runtime OK before the environment-alert notifications can show.
+    val notificationPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* nothing to do either way; the worker re-checks the permission before posting */ }
+
     LaunchedEffect(userId) {
         viewModel.refresh(userId)
         if (androidx.core.content.ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             locationPermLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+        } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // One system dialog at a time: ask for notifications once location is sorted.
+            notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
     val skinMindCompleted by viewModel.skinMindCompleted.collectAsState()
@@ -327,6 +337,8 @@ private fun EnvironmentAlertCard(alert: EnvironmentAlert, timeLabel: String) {
         EnvironmentAlert.HIGH_UV -> DermoColors.WarmAmber to Icons.Outlined.Warning
         EnvironmentAlert.EXTREME_HEAT -> DermoColors.SoftCoral to Icons.Outlined.Warning
         EnvironmentAlert.HIGH_HUMIDITY -> DermoColors.TealAccent to Icons.Outlined.Warning
+        EnvironmentAlert.POOR_AIR -> DermoColors.WarmAmber to Icons.Outlined.Warning
+        EnvironmentAlert.UNHEALTHY_AIR -> DermoColors.SoftCoral to Icons.Outlined.Warning
     }
     val textColor = DermoColors.textOnLight(accent)
     NeuSurface(
