@@ -38,6 +38,13 @@ interface PatientLinkDao {
     @Query("SELECT * FROM patient_links WHERE id = :linkId LIMIT 1")
     suspend fun getById(linkId: String): PatientLinkEntity?
 
+    /** How many doctors this patient currently has an active, consented link with. */
+    @Query(
+        "SELECT COUNT(*) FROM patient_links WHERE patientUserId = :patientUserId " +
+            "AND status = 'ACTIVE' AND consentGrantedAt IS NOT NULL",
+    )
+    suspend fun countActiveForPatient(patientUserId: String): Int
+
     @Query(
         "SELECT COUNT(*) FROM patient_links WHERE doctorId = :doctorId AND status = 'ACTIVE' " +
             "AND consentGrantedAt IS NOT NULL",

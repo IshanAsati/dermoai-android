@@ -245,13 +245,17 @@ class DoctorSyncRepository @Inject constructor(
     suspend fun pushScanSummary(
         summary: ScanSummaryDto,
         grantedDoctorUserIds: Collection<String> = emptyList(),
-    ): AppResult<PushOutcome> = push(summary.patientUserId) { databases, _ ->
+    ): AppResult<PushOutcome> = push(summary.patientUserId) { databases, sessionUserId ->
         databases.upsert(
             collectionId = AppwriteSchema.SCAN_SUMMARIES,
             documentId = summary.id,
             data = summary.toMap(),
+            // The owner in the ACL must be the *session*, never the local account id in
+            // `summary.patientUserId`: Appwrite rejects an ACL naming an identity the caller
+            // is not, and the doctor dashboard decides whose summaries it may show by
+            // matching this owner against the session that wrote the consenting link.
             permissions = SyncPermissions.scanSummaryPermissions(
-                patientUserId = summary.patientUserId,
+                patientUserId = sessionUserId,
                 grantedDoctorUserIds = grantedDoctorUserIds,
             ),
         )
