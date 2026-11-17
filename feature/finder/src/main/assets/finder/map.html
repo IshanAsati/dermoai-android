@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="leaflet.css">
+<style>
+  html, body, #map { height: 100%; margin: 0; background: #e9e4da; }
+  .leaflet-container { font-family: sans-serif; }
+  /* Pin: a teal teardrop built from CSS, so the map needs no image files. */
+  .pin { position: relative; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+         background: #1e6e5a; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.4); box-sizing: border-box; }
+  .pin::after { content: ""; position: absolute; width: 8px; height: 8px; border-radius: 50%;
+                background: #fff; top: 8px; left: 8px; }
+  .pin.sel { background: #c4532f; width: 38px; height: 38px; }
+  .pin.sel::after { top: 12px; left: 12px; }
+  .me { width: 18px; height: 18px; border-radius: 50%; background: #2a7de1; border: 3px solid #fff;
+        box-shadow: 0 0 0 6px rgba(42,125,225,.25); box-sizing: border-box; }
+  #note { position: absolute; left: 8px; right: 8px; bottom: 28px; z-index: 1000; padding: 8px 12px;
+          border-radius: 10px; background: rgba(255,243,224,.95); color: #6b3d00; font-size: 13px; display: none; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="note"></div>
+<script src="leaflet.js"></script>
+<script>
+(function () {
+  var strings = { you: 'You', tilesError: "Map tiles can't load — check your internet connection." };
+  var map = L.map('map', { zoomControl: true, attributionControl: true }).setView([20.59, 78.96], 5);
+  map.attributionControl.setPrefix('Leaflet');
+
+  // In an Android WebView, `height: 100%` can resolve to 0 (the page's own height is
+  // unknown to CSS there) and the map collapses to nothing. window.innerHeight is
+  // reliable, so size the map from it and keep it in step with the view.
+  var mapEl = document.getElementById('map');
+  function fitToView() { mapEl.style.height = window.innerHeight + 'px'; map.invalidateSize(); }
+  window.addEventListener('resize', fitToView);
+  fitToView();
+
+  var note = document.getElementById('note');
+  var tilesOk = false, tileErrors = 0;
+  var layer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  layer.on('tileload', function () { tilesOk = true; tileErrors = 0; note.style.display = 'none'; });
+  layer.on('tileerror', function () {
+    tileErrors++;
+    if (!tilesOk && tileErrors >= 3) { note.textContent = strings.tilesError; note.style.display = 'block'; }
+  });
+
+  var meMarker = null, markers = {}, selectedId = null, fittedOnce = false, fittedClinics = false;
+
+  function pinIcon(sel) {
+    var size = sel ? 38 : 30;
+    return L.divIcon({ className: '', html: '<div class="pin' + (sel ? ' sel' : '') + '"></div>',
+                       // The rotated square's tip sits ~0.7 of its size below its centre.
+                       iconSize: [size, size], iconAnchor: [size / 2, Math.round(size * 1.2)] });
+  }
+
+  window.dermo = {
+    // data = { strings:{...}, user:{lat,lon}, clinics:[{id,name,lat,lon,address,distance}] }
+    setData: function (data) {
+      if (data.strings) { strings = data.strings; }
+      Object.keys(markers).forEach(function (id) { map.removeLayer(markers[id]); });
+      markers = {};
+      if (meMarker) { map.removeLayer(meMarker); meMarker = null; }
+
+      var pts = [];
+      if (data.user) {
+        meMarker = L.marker([data.user.lat, data.user.lon], {
+          icon: L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+          interactive: false, keyboard: false, zIndexOffset: -1000
+        }).addTo(map);
+        pts.push([data.user.lat, data.user.lon]);
+      }
+      (data.clinics || []).forEach(function (c, i) {
+        var m = L.marker([c.lat, c.lon], { icon: pinIcon(c.id === selectedId), title: c.name, keyboard: false });
+        m.on('click', function () { Android.onClinicSelected(c.id); });
+        m.addTo(map);
+        markers[c.id] = m;
+        if (i < 12) { pts.push([c.lat, c.lon]); } // frame the user plus the nearest few
+      });
+
+      // Frame the view once with just the user, and once more when clinics first arrive.
+      var hasClinics = (data.clinics || []).length > 0;
+      if (hasClinics && !fittedClinics && pts.length > 1) {
+        map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 15 });
+        fittedClinics = true; fittedOnce = true;
+      } else if (!fittedOnce && pts.length >= 1) {
+        map.setView(pts[0], 14);
+        fittedOnce = true;
+      }
+    },
+    select: function (id) {
+      if (selectedId && markers[selectedId]) { markers[selectedId].setIcon(pinIcon(false)); }
+      selectedId = id || null;
+      if (selectedId && markers[selectedId]) {
+        markers[selectedId].setIcon(pinIcon(true));
+        markers[selectedId].setZIndexOffset(1000);
+        map.panTo(markers[selectedId].getLatLng());
+      }
+    }
+  };
+
+  Android.onMapReady();
+})();
+</script>
+</body>
+</html>

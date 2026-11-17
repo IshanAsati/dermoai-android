@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Cameraswitch
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.FlashAuto
 import androidx.compose.material.icons.outlined.FlashOff
@@ -63,6 +64,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -85,6 +87,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import com.dermoai.core.camera.CameraCaptureManager
+import com.dermoai.core.camera.CaptureBusyException
 import com.dermoai.core.common.result.AppResult
 import com.dermoai.core.database.dao.ScanPredictionDao
 import com.dermoai.core.database.dao.SkinScanDao
@@ -152,9 +155,11 @@ class ScanViewModel @Inject constructor(
         cameraManager.bind(lifecycleOwner, view, cameraExecutor)
     }
 
-    fun toggleFlash() {
-        cameraManager.toggleFlash()
-    }
+    /** Returns the camera's new flash mode (AUTO = 0, ON = 1, OFF = 2). */
+    fun toggleFlash(): Int = cameraManager.toggleFlash()
+
+    /** Flips rear/front camera; returns true when the front (selfie) camera is now active. */
+    fun switchCamera(): Boolean = cameraManager.switchCamera()
 
     suspend fun capturePhoto(): Result<String> {
         val result = cameraManager.capture()
@@ -276,7 +281,8 @@ class ScanViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        cameraManager.release()
+        // Passing our executor lets the manager ignore this if a newer screen already owns the camera.
+        cameraManager.release(cameraExecutor)
         cameraExecutor.shutdown()
     }
 }
@@ -487,7 +493,10 @@ fun ScanCaptureScreen(
 ) {
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    var flashMode by remember { mutableIntStateOf(0) }
+    // Mirrors the camera's real flash mode (AUTO = 0, ON = 1, OFF = 2); starts OFF, like the camera.
+    var flashMode by remember { mutableIntStateOf(2) }
+    var capturing by remember { mutableStateOf(false) }
+    var frontCamera by remember { mutableStateOf(false) }
     var captureError by remember { mutableStateOf<String?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -527,14 +536,34 @@ fun ScanCaptureScreen(
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TopPill(onClick = onBack, icon = Icons.AutoMirrored.Outlined.ArrowBack, desc = "Back")
-                TopPill(
-                    // Camera cycle is AUTO→OFF→ON; keep the icon in sync.
-                    onClick = { flashMode = (flashMode + 1) % 3; viewModel.toggleFlash() },
-                    icon = when (flashMode) {
-                        0 -> Icons.Outlined.FlashAuto; 1 -> Icons.Outlined.FlashOff; else -> Icons.Outlined.FlashOn
-                    },
-                    desc = "Flash",
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // The selfie camera has no flash, so the flash button only shows for the rear one.
+                    if (!frontCamera) {
+                        TopPill(
+                            onClick = { flashMode = viewModel.toggleFlash() },
+                            icon = when (flashMode) {
+                                0 -> Icons.Outlined.FlashAuto; 1 -> Icons.Outlined.FlashOn; else -> Icons.Outlined.FlashOff
+                            },
+                            desc = "Flash",
+                        )
+                    }
+                    TopPill(
+                        onClick = {
+                            if (!capturing) {
+                                frontCamera = viewModel.switchCamera()
+                                // The camera needs a moment to restart; hold the shutter so an
+                                // instant tap cannot hit a half-open camera.
+                                scope.launch {
+                                    capturing = true
+                                    kotlinx.coroutines.delay(800)
+                                    capturing = false
+                                }
+                            }
+                        },
+                        icon = Icons.Outlined.Cameraswitch,
+                        desc = "Switch camera",
+                    )
+                }
             }
         }
 
@@ -558,13 +587,25 @@ fun ScanCaptureScreen(
                     )
                 }
             }
-            Box(Modifier.size(72.dp).clip(CircleShape).clickable {
+            Box(Modifier.size(72.dp).clip(CircleShape).alpha(if (capturing) 0.5f else 1f).clickable(enabled = !capturing) {
                 scope.launch {
+                    capturing = true
                     captureError = null
-                    viewModel.capturePhoto().onSuccess { path ->
-                        onPhotoCaptured(path)
-                    }.onFailure {
-                        captureError = "Couldn't capture photo. Please try again."
+                    try {
+                        val result = viewModel.capturePhoto()
+                        result.onSuccess { path ->
+                            onPhotoCaptured(path)
+                        }.onFailure { e ->
+                            // A second tap while one capture is running is just ignored.
+                            if (e !is CaptureBusyException) {
+                                captureError = "Couldn't capture photo. Please try again."
+                            }
+                        }
+                        // The next screen takes a moment to appear; keep the shutter disabled until
+                        // then so a quick double-tap can't take (and navigate with) a second photo.
+                        if (result.isSuccess) kotlinx.coroutines.delay(1500)
+                    } finally {
+                        capturing = false
                     }
                 }
             }, contentAlignment = Alignment.Center) {

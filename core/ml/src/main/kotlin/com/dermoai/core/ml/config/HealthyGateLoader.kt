@@ -23,6 +23,7 @@ class HealthyGateLoader @Inject constructor(
             weights = FloatArray(arr.length()) { i -> arr.getDouble(i).toFloat() },
             bias = obj.getDouble("bias").toFloat(),
             threshold = obj.getDouble("threshold").toFloat(),
+            vetoThreshold = obj.optDouble("vetoThreshold", 0.0).toFloat(),
         )
     }.getOrNull()
 

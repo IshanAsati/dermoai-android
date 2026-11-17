@@ -19,6 +19,13 @@ interface SkinScanDao {
     @Query("SELECT * FROM skin_scans WHERE id = :scanId LIMIT 1")
     suspend fun getById(scanId: String): SkinScanEntity?
 
+    /** Scans whose triage summary has not reached the server yet, oldest first. */
+    @Query("SELECT * FROM skin_scans WHERE userId = :userId AND syncStatus != 'SYNCED' ORDER BY capturedAt ASC")
+    suspend fun getUnsyncedByUserId(userId: String): List<SkinScanEntity>
+
+    @Query("UPDATE skin_scans SET syncStatus = 'SYNCED' WHERE id = :scanId")
+    suspend fun markSynced(scanId: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(scan: SkinScanEntity)
 
