@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Cameraswitch
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.FlashAuto
 import androidx.compose.material.icons.outlined.FlashOff
@@ -156,6 +157,9 @@ class ScanViewModel @Inject constructor(
 
     /** Returns the camera's new flash mode (AUTO = 0, ON = 1, OFF = 2). */
     fun toggleFlash(): Int = cameraManager.toggleFlash()
+
+    /** Flips rear/front camera; returns true when the front (selfie) camera is now active. */
+    fun switchCamera(): Boolean = cameraManager.switchCamera()
 
     suspend fun capturePhoto(): Result<String> {
         val result = cameraManager.capture()
@@ -492,6 +496,7 @@ fun ScanCaptureScreen(
     // Mirrors the camera's real flash mode (AUTO = 0, ON = 1, OFF = 2); starts OFF, like the camera.
     var flashMode by remember { mutableIntStateOf(2) }
     var capturing by remember { mutableStateOf(false) }
+    var frontCamera by remember { mutableStateOf(false) }
     var captureError by remember { mutableStateOf<String?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -531,13 +536,34 @@ fun ScanCaptureScreen(
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TopPill(onClick = onBack, icon = Icons.AutoMirrored.Outlined.ArrowBack, desc = "Back")
-                TopPill(
-                    onClick = { flashMode = viewModel.toggleFlash() },
-                    icon = when (flashMode) {
-                        0 -> Icons.Outlined.FlashAuto; 1 -> Icons.Outlined.FlashOn; else -> Icons.Outlined.FlashOff
-                    },
-                    desc = "Flash",
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // The selfie camera has no flash, so the flash button only shows for the rear one.
+                    if (!frontCamera) {
+                        TopPill(
+                            onClick = { flashMode = viewModel.toggleFlash() },
+                            icon = when (flashMode) {
+                                0 -> Icons.Outlined.FlashAuto; 1 -> Icons.Outlined.FlashOn; else -> Icons.Outlined.FlashOff
+                            },
+                            desc = "Flash",
+                        )
+                    }
+                    TopPill(
+                        onClick = {
+                            if (!capturing) {
+                                frontCamera = viewModel.switchCamera()
+                                // The camera needs a moment to restart; hold the shutter so an
+                                // instant tap cannot hit a half-open camera.
+                                scope.launch {
+                                    capturing = true
+                                    kotlinx.coroutines.delay(800)
+                                    capturing = false
+                                }
+                            }
+                        },
+                        icon = Icons.Outlined.Cameraswitch,
+                        desc = "Switch camera",
+                    )
+                }
             }
         }
 

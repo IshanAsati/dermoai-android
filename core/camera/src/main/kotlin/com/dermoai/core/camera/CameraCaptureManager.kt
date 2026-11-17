@@ -56,7 +56,7 @@ class CameraCaptureManager @Inject constructor(
     // Weak: this is a singleton and must never keep a destroyed screen alive.
     private var ownerRef: WeakReference<LifecycleOwner>? = null
     private var previewRef: WeakReference<PreviewView>? = null
-    private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
+    @Volatile private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
     private var flashMode: Int = ImageCapture.FLASH_MODE_OFF
 
     private val bindMutex = Mutex()
@@ -99,7 +99,8 @@ class CameraCaptureManager @Inject constructor(
                     // looks at a 224 px image anyway.
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .setFlashMode(flashMode)
+                        // Front cameras have no flash unit; a stored ON/AUTO would only confuse CameraX.
+                        .setFlashMode(if (isFrontCamera) ImageCapture.FLASH_MODE_OFF else flashMode)
                         .build()
                     provider.unbindAll()
                     provider.bindToLifecycle(
@@ -127,6 +128,7 @@ class CameraCaptureManager @Inject constructor(
      * (AUTO = 0, ON = 1, OFF = 2) so the UI can show exactly what the camera is doing.
      */
     fun toggleFlash(): Int {
+        if (isFrontCamera) return flashMode // no flash on the selfie camera; keep the rear setting
         flashMode = when (flashMode) {
             ImageCapture.FLASH_MODE_OFF -> ImageCapture.FLASH_MODE_ON
             ImageCapture.FLASH_MODE_ON -> ImageCapture.FLASH_MODE_AUTO
@@ -135,6 +137,29 @@ class CameraCaptureManager @Inject constructor(
         imageCapture?.flashMode = flashMode
         return flashMode
     }
+
+    /** True while the selfie (front) camera is in use. */
+    val isFrontCamera: Boolean get() = lensFacing == CameraSelector.LENS_FACING_FRONT
+
+    /**
+     * Flips between the rear and the front camera and returns whether the front camera is now
+     * in use. Does nothing (and returns the current state) if the device has no other camera or
+     * a photo is being taken right now.
+     */
+    fun switchCamera(): Boolean {
+        if (capturing.get()) return isFrontCamera
+        val target = if (isFrontCamera) CameraSelector.LENS_FACING_BACK else CameraSelector.LENS_FACING_FRONT
+        if (!hasCamera(target)) return isFrontCamera
+        lensFacing = target
+        imageCapture = null // capture() waits for the rebind instead of using the old camera
+        scope.launch { rebind() }
+        return isFrontCamera
+    }
+
+    private fun hasCamera(lens: Int): Boolean = runCatching {
+        val future = ProcessCameraProvider.getInstance(context)
+        future.isDone && future.get().hasCamera(CameraSelector.Builder().requireLensFacing(lens).build())
+    }.getOrDefault(false)
 
     /** Capture a photo to app-private storage. Returns the file path. */
     suspend fun capture(): Result<String> {
@@ -167,7 +192,10 @@ class CameraCaptureManager @Inject constructor(
         val deferred = CompletableDeferred<Result<String>>()
         try {
             ic.takePicture(
-                ImageCapture.OutputFileOptions.Builder(photoFile).build(),
+                ImageCapture.OutputFileOptions.Builder(photoFile)
+                    // Selfies are saved mirrored, matching what the live preview showed.
+                    .setMetadata(ImageCapture.Metadata().apply { isReversedHorizontal = isFrontCamera })
+                    .build(),
                 ContextCompat.getMainExecutor(context),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {

@@ -44,8 +44,8 @@ android {
         applicationId = "com.dermoai"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "2.0.3"
+        versionCode = 6
+        versionName = "2.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("boolean", "FIREBASE_CONFIGURED", "false")
         buildConfigField("String", "APPWRITE_ENDPOINT", "\"${appwriteProperty("APPWRITE_ENDPOINT")}\"")
