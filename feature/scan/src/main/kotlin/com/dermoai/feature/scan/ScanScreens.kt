@@ -566,7 +566,8 @@ fun ScanCaptureScreen(
                     capturing = true
                     captureError = null
                     try {
-                        viewModel.capturePhoto().onSuccess { path ->
+                        val result = viewModel.capturePhoto()
+                        result.onSuccess { path ->
                             onPhotoCaptured(path)
                         }.onFailure { e ->
                             // A second tap while one capture is running is just ignored.
@@ -574,6 +575,9 @@ fun ScanCaptureScreen(
                                 captureError = "Couldn't capture photo. Please try again."
                             }
                         }
+                        // The next screen takes a moment to appear; keep the shutter disabled until
+                        // then so a quick double-tap can't take (and navigate with) a second photo.
+                        if (result.isSuccess) kotlinx.coroutines.delay(1500)
                     } finally {
                         capturing = false
                     }
